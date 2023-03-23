@@ -18,7 +18,7 @@ func (repo *rssDomain) SyncRssFeedNoNotice(ctx context.Context) (updated map[int
 		return
 	}
 	// 遍历所有源，获取每个channel对应的rss内容
-	var rssChannelView []*RssChannelView
+	rssChannelView := make([]*RssChannelView, 0)
 	for _, channel := range channels {
 		var feed *gofeed.Feed
 		// 从site获取rss内容
@@ -77,6 +77,7 @@ func (repo *rssDomain) processRssChannelUpdate(ctx context.Context, channel *Rss
 	channel.Id = channelSrc.Id
 	// 检查是否需要更新到db
 	if channelSrc.IfNeedUpdate(channel) {
+		needUpdate = true
 		// 保存
 		err = repo.storage.UpsertSource(ctx, channel)
 		if err != nil {

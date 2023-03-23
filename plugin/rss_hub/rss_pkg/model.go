@@ -11,7 +11,7 @@ import (
 //type SingleFeedItem gofeed.Item
 
 func genHashForFeedItem(link, guid string) string {
-	idString := string(link) + "||" + guid
+	idString := link + "||" + guid
 	h := fnv.New32()
 	_, _ = h.Write([]byte(idString))
 	encoded := hex.EncodeToString(h.Sum(nil))
@@ -56,10 +56,12 @@ type RssFeedChannel struct {
 	Mtime time.Time `gorm:"column:mtime;default:current_timestamp;" json:"mtime"`
 }
 
+// TableName ...
 func (RssFeedChannel) TableName() string {
 	return tableNameRssFeedChannel
 }
 
+// IfNeedUpdate ...
 func (r RssFeedChannel) IfNeedUpdate(cmp *RssFeedChannel) bool {
 	if r.Link != cmp.Link {
 		return false
@@ -86,10 +88,12 @@ type RssContent struct {
 	Mtime time.Time `gorm:"column:mtime;default:current_timestamp;" json:"mtime"`
 }
 
+// TableName ...
 func (RssContent) TableName() string {
 	return tableNameRssFeedContent
 }
 
+// RssSubscribe 订阅关系表：群组-RSS频道
 type RssSubscribe struct {
 	// Id 自增id
 	Id int64 `gorm:"primary_key;AUTO_INCREMENT"`
@@ -103,6 +107,7 @@ type RssSubscribe struct {
 	Mtime time.Time `gorm:"column:mtime;default:current_timestamp;" json:"mtime"`
 }
 
+// TableName ...
 func (RssSubscribe) TableName() string {
 	return tableNameRssSubscribe
 }

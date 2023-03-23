@@ -13,10 +13,12 @@ const (
 	userHeader   = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.135 Safari/537.36 Edg/84.0.522.63"
 )
 
+// RssHubClient rss hub client (http)
 type RssHubClient struct {
 	*http.Client
 }
 
+// FetchFeed 获取rss feed信息
 func (c *RssHubClient) FetchFeed(domain, path string) (feed *gofeed.Feed, err error) {
 	req, err := http.NewRequest("GET", domain+path, nil)
 	if err != nil {

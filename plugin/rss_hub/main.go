@@ -158,7 +158,7 @@ func rssSync(ctx *zero.Ctx) {
 		return
 	}
 	// 没有更新的群组不推送
-	if len(groupToFeedsMap) <= 0 {
+	if len(groupToFeedsMap) == 0 {
 		logrus.Info("RssHub未发现更新")
 		return
 	}
