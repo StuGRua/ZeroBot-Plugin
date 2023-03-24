@@ -47,7 +47,7 @@ func TestSub(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			channel, ifExisted, ifSub, err := dm.GroupSubscribeChannel(ctx, tc.gid, tc.feedLink)
+			channel, ifExisted, ifSub, err := dm.Subscribe(ctx, tc.gid, tc.feedLink)
 			if err != nil {
 				t.Fatal(err)
 				return
@@ -59,7 +59,7 @@ func TestSub(t *testing.T) {
 				return
 			}
 			t.Logf("[TEST] if exist: %+v,%+v", res, ext)
-			channels, err := dm.GetGroupSubscribedChannels(ctx, 2)
+			channels, err := dm.GetSubscribedChannelsByGroupId(ctx, 2)
 			if err != nil {
 				t.Fatal(err)
 				return
@@ -72,7 +72,7 @@ func TestSub(t *testing.T) {
 func TestSub_2(t *testing.T) {
 	dm, _ = newRssDomain("")
 	ctx := context.Background()
-	channel, ifExisted, ifSub, err := dm.GroupSubscribeChannel(ctx, 99, "/bangumi/tv/calendar/today")
+	channel, ifExisted, ifSub, err := dm.Subscribe(ctx, 99, "/bangumi/tv/calendar/today")
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -84,14 +84,14 @@ func TestSub_2(t *testing.T) {
 		return
 	}
 	t.Logf("if exist: %+v,%+v", res, ext)
-	channels, err := dm.GetGroupSubscribedChannels(ctx, 2)
+	channels, err := dm.GetSubscribedChannelsByGroupId(ctx, 2)
 	if err != nil {
 		t.Fatal(err)
 		return
 	}
 	t.Logf("2 channels: %+v", channels)
 
-	err = dm.GroupUnsubscribeChannel(ctx, 2, "/bangumi/tv/calendar/today")
+	err = dm.Unsubscribe(ctx, 2, "/bangumi/tv/calendar/today")
 	if err != nil {
 		t.Fatal(err)
 		return

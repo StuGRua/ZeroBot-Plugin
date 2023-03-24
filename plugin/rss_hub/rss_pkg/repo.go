@@ -9,7 +9,7 @@ type RepoContent interface {
 	// DeleteSourceContents 删除订阅源的所有文章，返回被删除的文章数
 	DeleteSourceContents(ctx context.Context, channelID int64) (int64, error)
 	// HashIDExist hash id 对应的文章是否已存在
-	HashIDExist(ctx context.Context, hashID string) (bool, error)
+	IsContentHashIDExist(ctx context.Context, hashID string) (bool, error)
 }
 
 // RepoSource RSS 订阅源存储接口

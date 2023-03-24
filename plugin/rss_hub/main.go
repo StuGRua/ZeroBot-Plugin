@@ -16,18 +16,16 @@ import (
 
 // 初始化 repo
 var (
-	rssCron          = cron.New()
+	rssCron          = cron.New(cron.WithSeconds())
 	rssRepo, initErr = rss_pkg.NewRssDomain(engine.DataFolder() + "rss_hub.db")
 
 	// getRssRepo repo 初始化方法，单例
 	getRssRepo = ctxext.DoOnceOnSuccess(func(ctx *zero.Ctx) bool {
-		_, _ = rssCron.AddFunc("@every 1m", func() {
+		_, _ = rssCron.AddFunc("0 0/1 * * * ?", func() {
 			rssSync(ctx)
 		})
 		rssCron.Start()
 		logrus.WithContext(context.Background()).Infoln("RSS订阅姬：初始化")
-		//var err error
-		//rssRepo, err = rss_pkg.NewRssDomain(engine.DataFolder()+"rss_hub.db", rssCron)
 		if initErr != nil {
 			ctx.SendChain(message.Text("RSS订阅姬：初始化失败", initErr.Error()))
 			return false
@@ -52,14 +50,11 @@ var (
 			"/测试RssHub同步 \n",
 		// 插件数据存储路径
 		PublicDataFolder: "RssHub",
-
 		OnEnable: func(ctx *zero.Ctx) {
-			//_, _ = rssCron.AddFunc("@every 1m", func() {
-			//	rssSync(ctx)
-			//})
 			ctx.SendChain(message.Text("RSS订阅姬现在启动了哦"))
 		},
 		OnDisable: func(ctx *zero.Ctx) {
+			rssCron.Stop()
 			ctx.SendChain(message.Text("RSS订阅姬现在关闭了哦"))
 		},
 	}).ApplySingle(zbpCtxExt.DefaultSingle)
@@ -69,20 +64,10 @@ var (
 func init() {
 	// Manage RssHub
 	engine.OnCommand("强制RssHub同步", zero.AdminPermission).SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		//updatedView, err := rssRepo.SyncRssFeedNoNotice(context.Background())
-		//if err != nil {
-		//	return
-		//}
-		//var msg []message.MessageSegment
-		//msg = append(msg, formatRssFeedToTextMsg(updatedView)...)
-		//ctx.SendChain(msg...)
 	})
 	// 启动
 	engine.OnFullMatch("启动RssHub同步", zero.AdminPermission, getRssRepo).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		ctx.SendChain(message.Text("RssHub同步任务启动ing..."))
-		//_, _ = rssCron.AddFunc("@every 1m", func() {
-		//	rssSync(ctx)
-		//})
 		rssCron.Start()
 		ctx.SendChain(message.Text("RssHub同步任务启动成功"))
 	})
@@ -94,7 +79,7 @@ func init() {
 	// 添加订阅
 	engine.OnRegex(`^添加RssHub订阅(.+)$`, zero.OnlyGroup, getRssRepo).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		routeStr := ctx.State["regex_matched"].([]string)[1]
-		rv, _, isSubExisted, err := rssRepo.GroupSubscribeChannel(context.Background(), ctx.Event.GroupID, routeStr)
+		rv, _, isSubExisted, err := rssRepo.Subscribe(context.Background(), ctx.Event.GroupID, routeStr)
 		if err != nil {
 			ctx.SendChain(message.Text("RSS订阅姬：添加失败", err.Error()))
 			return
@@ -118,7 +103,7 @@ func init() {
 	})
 	engine.OnRegex(`^删除RssHub订阅(.+)$`, zero.OnlyGroup, getRssRepo).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		routeStr := ctx.State["regex_matched"].([]string)[1]
-		err := rssRepo.GroupUnsubscribeChannel(context.Background(), ctx.Event.GroupID, routeStr)
+		err := rssRepo.Unsubscribe(context.Background(), ctx.Event.GroupID, routeStr)
 		if err != nil {
 			ctx.SendChain(message.Text("RSS订阅姬：删除失败 ", err.Error()))
 			return
@@ -129,7 +114,7 @@ func init() {
 		ctx.SendChain(msg...)
 	})
 	engine.OnFullMatch("RssHub订阅列表", zero.OnlyGroup, getRssRepo).SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		rv, err := rssRepo.GetGroupSubscribedChannels(context.Background(), ctx.Event.GroupID)
+		rv, err := rssRepo.GetSubscribedChannelsByGroupId(context.Background(), ctx.Event.GroupID)
 		if err != nil {
 			ctx.SendChain(message.Text("RSS订阅姬：查询失败 ", err.Error()))
 			return
@@ -186,7 +171,7 @@ func rssSync(ctx *zero.Ctx) {
 			// 检查群组是否启用了插件
 			if isEnabledInGroup {
 				logrus.Infof("RssHub插件在群 %d 开始推送", i)
-				ctx.SendGroupMessage(i, message.Text("RSS订阅姬定时推送中~\n"))
+				ctx.SendGroupMessage(i, message.Text(v.Channel.Title+"\n[RSS订阅姬定时推送]\n"))
 				//ms := message.Message{zbpCtxExt.FakeSenderForwardNode(ctx, msg)}
 				if id := ctx.Send(msg).ID(); id == 0 {
 					ctx.SendChain(message.Text("ERROR: 可能被风控了"))

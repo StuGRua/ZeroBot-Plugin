@@ -89,7 +89,7 @@ func (repo *rssDomain) processRssChannelUpdate(ctx context.Context, channel *Rss
 }
 
 func (repo *rssDomain) processRssContentUpdate(ctx context.Context, content *RssContent) (existed bool, err error) {
-	existed, err = repo.storage.HashIDExist(ctx, content.HashId)
+	existed, err = repo.storage.IsContentHashIDExist(ctx, content.HashId)
 	if err != nil {
 		return
 	}
