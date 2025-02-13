@@ -3,22 +3,19 @@ package mcobserver
 import (
 	"fmt"
 	"github.com/FloatTech/imgfactory"
-	"github.com/Tnze/go-mc/bot"
-	"github.com/sirupsen/logrus"
 	"testing"
 )
 
 // dx.zhaomc.net
 func Test_makePicForPingListInfo(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
-		resp, delay, err := bot.PingAndList("Bamboss.mossmc.top")
+		ss, err := getMinecraftServerStatus("dx.zhaomc.net")
 		if err != nil {
-			logrus.Errorf("[mcobserver] PingAndList error: %v", err)
-			return
+			t.Errorf("getMinecraftServerStatus() error = %v", err)
 		}
-		gotImg, err := makePicForPingListInfo(resp, delay)
+		gotImg, err := drawServerStatus(ss)
 		if err != nil {
-			t.Errorf("makePicForPingListInfo() error = %v", err)
+			t.Errorf("drawServerStatus() error = %v", err)
 		}
 		if err = imgfactory.SavePNG2Path("test.png", gotImg); err != nil {
 			t.Errorf("imgfactory.Save() error = %v", err)

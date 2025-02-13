@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type status struct {
+type serverStatus struct {
 	Description chat.Message
 	Players     struct {
 		Max    int
