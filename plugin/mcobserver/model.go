@@ -2,9 +2,9 @@ package mcobserver
 
 import (
 	"encoding/base64"
-	"fmt"
 	"github.com/Tnze/go-mc/chat"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"image"
 	"image/png"
 	"strings"
@@ -37,7 +37,7 @@ type Icon string
 func (i Icon) toImage() (icon image.Image, err error) {
 	const prefix = "data:image/png;base64,"
 	if !strings.HasPrefix(string(i), prefix) {
-		return nil, fmt.Errorf("server icon should prepended with %s", prefix)
+		return nil, errors.Errorf("server icon should prepended with %s", prefix)
 	}
 	base64png := strings.TrimPrefix(string(i), prefix)
 	r := base64.NewDecoder(base64.StdEncoding, strings.NewReader(base64png))
