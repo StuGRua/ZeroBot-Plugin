@@ -1,3 +1,5 @@
+// Package mcobserver
+// 通过mc服务器地址获取服务器状态信息并绘制图片发送到QQ群
 package mcobserver
 
 import (
@@ -105,7 +107,7 @@ func makePicForPingListInfo(resp []byte, delay time.Duration) (img image.Image, 
 	}
 
 	// favicon
-	favicon, fErr := s.Favicon.ToImage()
+	favicon, fErr := s.Favicon.toImage()
 	if fErr != nil {
 		logrus.Errorf("[makePicForPingListInfo] favicon to image error: %v", fErr)
 	} else {

@@ -34,7 +34,7 @@ type status struct {
 // and prepended with "data:image/png;base64,".
 type Icon string
 
-func (i Icon) ToImage() (icon image.Image, err error) {
+func (i Icon) toImage() (icon image.Image, err error) {
 	const prefix = "data:image/png;base64,"
 	if !strings.HasPrefix(string(i), prefix) {
 		return nil, fmt.Errorf("server icon should prepended with %q", prefix)
