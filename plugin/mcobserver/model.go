@@ -37,7 +37,7 @@ type Icon string
 func (i Icon) toImage() (icon image.Image, err error) {
 	const prefix = "data:image/png;base64,"
 	if !strings.HasPrefix(string(i), prefix) {
-		return nil, fmt.Errorf("server icon should prepended with %q", prefix)
+		return nil, fmt.Errorf("server icon should prepended with %s", prefix)
 	}
 	base64png := strings.TrimPrefix(string(i), prefix)
 	r := base64.NewDecoder(base64.StdEncoding, strings.NewReader(base64png))

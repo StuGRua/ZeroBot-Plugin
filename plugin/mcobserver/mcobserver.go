@@ -1,5 +1,4 @@
-// Package mcobserver
-// 通过mc服务器地址获取服务器状态信息并绘制图片发送到QQ群
+// Package mcobserver 通过mc服务器地址获取服务器状态信息并绘制图片发送到QQ群
 package mcobserver
 
 import (
