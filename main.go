@@ -107,6 +107,7 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/lolimi"           // 桑帛云 API
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/magicprompt"      // magicprompt吟唱提示
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/mcfish"           // 钓鱼模拟器
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/mcobserver"       // Minecraft服务器监控&订阅
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/midicreate"       // 简易midi音乐制作
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/moyu"             // 摸鱼
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/moyucalendar"     // 摸鱼人日历
