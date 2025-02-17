@@ -1,4 +1,4 @@
-package mcobserver
+package minecraftobserver
 
 import (
 	"github.com/FloatTech/floatbox/web"
