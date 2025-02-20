@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/FloatTech/imgfactory"
 	"testing"
+	"time"
 )
 
 // dx.zhaomc.net
@@ -13,15 +14,28 @@ func Test_makePicForPingListInfo(t *testing.T) {
 		if err != nil {
 			t.Errorf("getMinecraftServerStatus() error = %v", err)
 		}
-		gotImg, err := drawServerStatus(ss)
+		gotImg, err := ss.drawServerStatus()
 		if err != nil {
 			t.Errorf("drawServerStatus() error = %v", err)
 		}
-		if err = imgfactory.SavePNG2Path("test.png", gotImg); err != nil {
+		if err = imgfactory.SavePNG2Path("test1.png", gotImg); err != nil {
 			t.Errorf("imgfactory.Save() error = %v", err)
 		}
 	})
-
+	t.Run("不可达", func(t *testing.T) {
+		ss, err := getMinecraftServerStatus("dx.zhaomc.net")
+		if err != nil {
+			t.Errorf("getMinecraftServerStatus() error = %v", err)
+		}
+		ss.Delay = time.Duration(-1)
+		gotImg, err := ss.drawServerStatus()
+		if err != nil {
+			t.Errorf("drawServerStatus() error = %v", err)
+		}
+		if err = imgfactory.SavePNG2Path("test2.png", gotImg); err != nil {
+			t.Errorf("imgfactory.Save() error = %v", err)
+		}
+	})
 }
 
 func Test_ExampleIcon_ToImagex(t *testing.T) {
