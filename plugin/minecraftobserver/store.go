@@ -17,6 +17,8 @@ const (
 	dbPath               = "minecraft_observer.dbInstance"
 )
 
+var errDBConn = errors.New("数据库连接失败")
+
 type db struct {
 	sdb  *gorm.DB
 	lock sync.RWMutex
@@ -63,7 +65,7 @@ var (
 // getAllServerSubscribeByTargetGroup 根据群组ID获取所有订阅的服务器
 func (d *db) getAllServerSubscribeByTargetGroup(targetGroupID int64) ([]*ServerSubscribeSchema, error) {
 	if d == nil {
-		return nil, errors.New("数据库连接失败")
+		return nil, errDBConn
 	}
 	var ss []*ServerSubscribeSchema
 	if err := d.sdb.Table(tableServerSubscribe).Where("target_group = ?", targetGroupID).Find(&ss).Error; err != nil {
@@ -75,8 +77,7 @@ func (d *db) getAllServerSubscribeByTargetGroup(targetGroupID int64) ([]*ServerS
 // 通过群组id和服务器地址获取订阅
 func (d *db) getServerSubscribeByTargetGroupAndAddr(addr string, targetGroupID int64) (*ServerSubscribeSchema, error) {
 	if d == nil {
-		logrus.Errorf("[mc-ob] getServerSubscribeByTargetGroupAndAddr ERROR: %v", "数据库连接失败")
-		return nil, errors.New("数据库连接失败")
+		return nil, errDBConn
 	}
 	var ss ServerSubscribeSchema
 	if err := d.sdb.Table(tableServerSubscribe).Where("server_addr = ? and target_group = ?", addr, targetGroupID).Find(&ss).Error; err != nil {
@@ -88,7 +89,7 @@ func (d *db) getServerSubscribeByTargetGroupAndAddr(addr string, targetGroupID i
 
 func (d *db) updateServerSubscribeStatus(ss *ServerSubscribeSchema) (err error) {
 	if d == nil {
-		return errors.New("数据库连接失败")
+		return errDBConn
 	}
 	d.lock.Lock()
 	defer d.lock.Unlock()
@@ -110,7 +111,7 @@ func (d *db) updateServerSubscribeStatus(ss *ServerSubscribeSchema) (err error) 
 
 func (d *db) insertServerSubscribe(ss *ServerSubscribeSchema) (err error) {
 	if d == nil {
-		return errors.New("数据库连接失败")
+		return errDBConn
 	}
 	d.lock.Lock()
 	defer d.lock.Unlock()
@@ -129,7 +130,7 @@ func (d *db) insertServerSubscribe(ss *ServerSubscribeSchema) (err error) {
 
 func (d *db) deleteServerSubscribeByID(id int64) (err error) {
 	if d == nil {
-		return errors.New("数据库连接失败")
+		return errDBConn
 	}
 	d.lock.Lock()
 	defer d.lock.Unlock()
