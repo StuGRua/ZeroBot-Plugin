@@ -17,7 +17,7 @@ var (
 	engine = control.Register("minecraftobserver", &ctrl.Options[*zero.Ctx]{
 		// 默认不启动
 		DisableOnDefault: false,
-		Brief:            "MC服务器状态查询/订阅",
+		Brief:            "Minecraft服务器状态查询/订阅",
 		// 详细帮助
 		Help: "- mc服务器状态 [IP/URI]\n" +
 			"- 拉取mc服务器订阅 （仅限群聊，需要插件定时任务配合使用）" +
@@ -58,7 +58,7 @@ func init() {
 		}
 	})
 	// 添加订阅
-	engine.OnRegex(`^mc服务器添加订阅\s*(.+)$`, zero.OnlyGroup).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+	engine.OnRegex(`^mc服务器添加订阅\s*(.+)$`, zero.OnlyGroup, getDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		// 关键词查找
 		var extractedPlainText string
 		extractedPlainText = ctx.ExtractPlainText()
@@ -79,7 +79,7 @@ func init() {
 		ctx.SendChain(message.Text("订阅添加成功"))
 	})
 	// 删除
-	engine.OnRegex(`^mc服务器删除订阅\s*(.+)$`, zero.OnlyGroup).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+	engine.OnRegex(`^mc服务器删除订阅\s*(.+)$`, zero.OnlyGroup, getDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		// 关键词查找
 		var extractedPlainText string
 		extractedPlainText = ctx.ExtractPlainText()
@@ -105,13 +105,7 @@ func init() {
 		ctx.SendChain(message.Text("订阅删除成功"))
 	})
 	// 状态变更通知，仅限群聊使用
-	engine.OnFullMatch("拉取mc服务器订阅", zero.OnlyGroup).SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		if db == nil {
-			if getDB(ctx) != true {
-				logrus.Errorf("[mc-ob] getDB error: %v", "db is nil")
-				return
-			}
-		}
+	engine.OnFullMatch("拉取mc服务器订阅", zero.OnlyGroup, getDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		serverList, err := db.getAllServerSubscribeByTargetGroup(ctx.Event.GroupID)
 		if err != nil {
 			logrus.Errorf("[mc-ob] getAllServerSubscribeByTargetGroup error: %v", err)
@@ -139,10 +133,6 @@ func init() {
 
 const (
 	subStatusChangeTextNoticeTitleFormat = "Minecraft服务器状态变更通知:\n"
-	// 描述变更
-	subStatusChangeTextNoticeDescFormat = "描述变更: %v -> %v\n"
-	// 版本变更
-	subStatusChangeTextNoticeVersionFormat = "版本变更: %v -> %v\n"
 	// 图标变更
 	subStatusChangeTextNoticeIconFormat = "图标变更:\n"
 )
@@ -153,10 +143,10 @@ func formatSubStatusChange(old, new *ServerSubscribeSchema) (msg message.Message
 		return
 	}
 	if old.Description != new.Description {
-		msg = append(msg, message.Text(fmt.Sprintf(subStatusChangeTextNoticeDescFormat, old.Description, new.Description)))
+		msg = append(msg, message.Text(fmt.Sprintf("描述变更: %v -> %v\n", old.Description, new.Description)))
 	}
 	if old.Version != new.Version {
-		msg = append(msg, message.Text(fmt.Sprintf(subStatusChangeTextNoticeVersionFormat, old.Version, new.Version)))
+		msg = append(msg, message.Text(fmt.Sprintf("版本变更: %v -> %v\n", old.Version, new.Version)))
 	}
 	if old.FaviconMD5 != new.FaviconMD5 {
 		msg = append(msg, message.Text(subStatusChangeTextNoticeIconFormat))

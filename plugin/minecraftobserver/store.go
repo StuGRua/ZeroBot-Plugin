@@ -24,9 +24,6 @@ type mcDB struct {
 
 // initializeDB 初始化数据库
 func initializeDB(dbpath string) error {
-	d := &mcDB{}
-	d.lock.Lock()
-	defer d.lock.Unlock()
 	if _, err := os.Stat(dbpath); err != nil || os.IsNotExist(err) {
 		// 生成文件
 		f, err := os.Create(dbpath)
@@ -35,6 +32,12 @@ func initializeDB(dbpath string) error {
 		}
 		defer f.Close()
 	}
+	d := &mcDB{
+		sdb:  nil,
+		lock: sync.RWMutex{},
+	}
+	d.lock.Lock()
+	defer d.lock.Unlock()
 	gdb, err := gorm.Open("sqlite3", dbpath)
 	if err != nil {
 		logrus.Errorf("mc-ob] initializeDB ERROR: %v", err)
