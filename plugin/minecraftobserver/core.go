@@ -225,7 +225,7 @@ func singleServerScan(oldSubStatus *ServerStatus) (changed bool, notifyMsg messa
 		// 计数器没有超限，增加计数器并跳过
 		if cnt, ts := addPingServerUnreachableCounter(oldSubStatus.ServerAddr, time.Now()); cnt < pingServerUnreachableCounterThreshold &&
 			time.Now().Sub(ts) < pingServerUnreachableCounterTimeThreshold {
-			logrus.Warnln(logPrefix+"server ", oldSubStatus.ServerAddr, " unreachable, counter: ", cnt, " firstUnreachableTs:", ts)
+			logrus.Warnln(logPrefix+"server ", oldSubStatus.ServerAddr, " unreachable, counter: ", cnt, " ts:", ts)
 			return
 		}
 		// 不可达计数器已经超限，则更新服务器状态

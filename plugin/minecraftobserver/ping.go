@@ -18,26 +18,26 @@ var (
 )
 
 type _pingServerUnreachableCounter struct {
-	count              int64
-	firstUnreachableTs time.Time
+	count                int64
+	firstUnreachableTime time.Time
 }
 
-func addPingServerUnreachableCounter(addr string, ts time.Time) (afterAdded int64, getTs time.Time) {
+func addPingServerUnreachableCounter(addr string, ts time.Time) (int64, time.Time) {
 	key := addr
 	get, ok := pingServerUnreachableCounter.Load(key)
 	if !ok {
 		pingServerUnreachableCounter.Store(key, _pingServerUnreachableCounter{
-			count:              1,
-			firstUnreachableTs: ts,
+			count:                1,
+			firstUnreachableTime: ts,
 		})
 		return 1, ts
 	}
 	// 存在则更新，时间戳不变
 	pingServerUnreachableCounter.Store(key, _pingServerUnreachableCounter{
-		count:              get.count + 1,
-		firstUnreachableTs: get.firstUnreachableTs,
+		count:                get.count + 1,
+		firstUnreachableTime: get.firstUnreachableTime,
 	})
-	return get.count + 1, get.firstUnreachableTs
+	return get.count + 1, get.firstUnreachableTime
 }
 
 func resetPingServerUnreachableCounter(addr string) {
