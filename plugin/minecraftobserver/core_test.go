@@ -2,6 +2,7 @@ package minecraftobserver
 
 import (
 	"fmt"
+	"github.com/wdvxdr1123/ZeroBot/message"
 	"testing"
 )
 
@@ -67,7 +68,24 @@ func Test_singleServerScan(t *testing.T) {
 		if err != nil {
 			t.Fatalf("getServerSubscribeByTargetGroupAndAddr() error = %v", err)
 		}
-		changed, msg, err := singleServerScan(ss2)
+		var msg message.Message
+		changed, _, err := singleServerScan(ss2)
+		if err != nil {
+			t.Fatalf("singleServerScan() error = %v", err)
+		}
+		if changed {
+			t.Fatalf("singleServerScan() got = %v, want false", changed)
+		}
+		// 第二次
+		changed, _, err = singleServerScan(ss2)
+		if err != nil {
+			t.Fatalf("singleServerScan() error = %v", err)
+		}
+		if changed {
+			t.Fatalf("singleServerScan() got = %v, want false", changed)
+		}
+		// 第三次
+		changed, msg, err = singleServerScan(ss2)
 		if err != nil {
 			t.Fatalf("singleServerScan() error = %v", err)
 		}
@@ -77,7 +95,7 @@ func Test_singleServerScan(t *testing.T) {
 		if len(msg) == 0 {
 			t.Fatalf("singleServerScan() got = %v, want not empty", msg)
 		}
-		fmt.Printf("msg: %v\n", msg)
+
 	})
 
 	t.Run("不可达 -> 可达", func(t *testing.T) {

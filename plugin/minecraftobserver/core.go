@@ -10,6 +10,7 @@ import (
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 	"strings"
+	"time"
 )
 
 var (
@@ -189,13 +190,19 @@ func singleServerScan(oldSubStatus *ServerSubscribeSchema) (changed bool, notify
 	// 获取服务器状态 & 检查是否需要更新
 	rawServerStatus, err := getMinecraftServerStatus(oldSubStatus.ServerAddr)
 	if err != nil {
-		logrus.Warnf(logPrefix+"getMinecraftServerStatus error: %v", err)
+		logrus.Warnln(logPrefix+"getMinecraftServerStatus error: ", err)
 		err = nil
+		// 计数器没有超限，增加计数器并跳过
+		if cnt, ts := addPingServerUnreachableCounter(oldSubStatus.TargetGroup, oldSubStatus.ServerAddr, time.Now()); cnt < pingServerUnreachableCounterThreshold &&
+			time.Now().Sub(ts) < pingServerUnreachableCounterTimeThreshold {
+			logrus.Warnln(logPrefix+"group ", oldSubStatus.TargetGroup, "server ", oldSubStatus.ServerAddr, " unreachable, counter: ", cnt, " firstUnreachableTs:", ts)
+			return
+		}
+		// 不可达计数器已经超限，则更新服务器状态
 		// 深拷贝，设置PingDelay为不可达
 		oldSubStatus.DeepCopyTo(newSubStatus)
 		newSubStatus.PingDelay = PingDelayUnreachable
 	} else {
-		// 没有错误则更新服务器状态
 		newSubStatus = rawServerStatus.GenServerSubscribeSchema(oldSubStatus.ServerAddr, oldSubStatus.ID, oldSubStatus.TargetGroup)
 	}
 	if newSubStatus == nil {
@@ -219,5 +226,7 @@ func singleServerScan(oldSubStatus *ServerSubscribeSchema) (changed bool, notify
 		notifyMsg = append(notifyMsg, message.Text("\n当前状态:\n"))
 		notifyMsg = append(notifyMsg, newStatusMsg...)
 	}
+	// 逻辑到达这里，说明状态已经变更 or 无变更且服务器可达，重置不可达计数器
+	resetPingServerUnreachableCounter(oldSubStatus.TargetGroup, oldSubStatus.ServerAddr)
 	return
 }

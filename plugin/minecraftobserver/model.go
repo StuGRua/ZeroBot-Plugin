@@ -128,7 +128,7 @@ func (ss *ServerSubscribeSchema) GenerateServerStatusMsg() (msg message.Message)
 		msg = append(msg, message.Text("Ping：超时\n"))
 	} else {
 		msg = append(msg, message.Text(fmt.Sprintf("Ping：%d 毫秒\n", ss.PingDelay)))
-		msg = append(msg, message.Text(fmt.Sprintf("\n在线人数：%s\n", ss.Players)))
+		msg = append(msg, message.Text(fmt.Sprintf("在线人数：%s\n", ss.Players)))
 	}
 	return
 }
