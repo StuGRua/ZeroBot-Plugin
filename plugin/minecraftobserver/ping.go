@@ -14,7 +14,6 @@ func getMinecraftServerStatus(addr string) (*serverPingAndListResp, error) {
 		logrus.Errorf("[mcobserver] PingAndList error: %+v", err)
 		return nil, err
 	}
-	logrus.Infof("[mcobserver] PingAndList response: %v", string(resp))
 	var s serverPingAndListResp
 	err = json.Unmarshal(resp, &s)
 	if err != nil {

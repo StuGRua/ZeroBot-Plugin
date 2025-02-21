@@ -146,7 +146,7 @@ func Test_DAO(t *testing.T) {
 		if queryResult[0].TargetGroup != 123456 {
 			t.Errorf("getAllServerSubscribeByTargetGroup() got = %v, want 123456", queryResult[0].TargetGroup)
 		}
-		err = db.deleteServerSubscribeById(queryResult[0].ID)
+		err = db.deleteServerSubscribeByID(queryResult[0].ID)
 		if err != nil {
 			t.Errorf("deleteServerStatus() error = %v", err)
 		}

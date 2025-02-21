@@ -49,8 +49,8 @@ const (
 	PingDelayUnreachable = -1
 )
 
-// isSubscribeSpecChanged 检查是否有订阅信息变化
-func (ss *ServerSubscribeSchema) isSubscribeSpecChanged(new *ServerSubscribeSchema) bool {
+// IsSubscribeSpecChanged 检查是否有订阅信息变化
+func (ss *ServerSubscribeSchema) IsSubscribeSpecChanged(new *ServerSubscribeSchema) bool {
 	if ss == nil || new == nil {
 		return false
 	}
@@ -83,6 +83,7 @@ func (ss *ServerSubscribeSchema) DeepCopyTo(dst *ServerSubscribeSchema) {
 	dst.LastUpdate = ss.LastUpdate
 }
 
+// FaviconToImage 转换为 image.Image
 func (ss *ServerSubscribeSchema) FaviconToImage() (icon image.Image, err error) {
 	const prefix = "data:image/png;base64,"
 	if !strings.HasPrefix(string(ss.FaviconRaw), prefix) {
@@ -107,7 +108,8 @@ func (ss *ServerSubscribeSchema) FaviconToBytes() (b []byte, err error) {
 	return
 }
 
-func (ss *ServerSubscribeSchema) generateServerStatusMsg() (msg message.Message) {
+// GenerateServerStatusMsg 生成服务器状态消息
+func (ss *ServerSubscribeSchema) GenerateServerStatusMsg() (msg message.Message) {
 	msg = make(message.Message, 0)
 	if ss == nil {
 		return
@@ -115,7 +117,7 @@ func (ss *ServerSubscribeSchema) generateServerStatusMsg() (msg message.Message)
 	msg = append(msg, message.Text(fmt.Sprintf("%s\n", ss.Description)))
 	// 图标
 	if ss.FaviconRaw != "" && ss.FaviconRaw.checkPNG() {
-		msg = append(msg, message.Image("base64://"+strings.TrimPrefix(string(ss.FaviconRaw), "data:image/png;base64,")))
+		msg = append(msg, message.Image(ss.FaviconRaw.toBase64String()))
 	}
 	msg = append(msg, message.Text(fmt.Sprintf("\n在线人数：%s\n", ss.Players)))
 	msg = append(msg, message.Text(fmt.Sprintf("版本：%s\n", ss.Version)))
@@ -165,9 +167,15 @@ type Icon string
 //	return
 //}
 
+// checkPNG 检查是否为PNG
 func (i Icon) checkPNG() bool {
 	const prefix = "data:image/png;base64,"
 	return strings.HasPrefix(string(i), prefix)
+}
+
+// toBase64String 转换为base64字符串
+func (i Icon) toBase64String() string {
+	return "base64://" + strings.TrimPrefix(string(i), "data:image/png;base64,")
 }
 
 // GenServerSubscribeSchema 将DTO转换为DB Schema

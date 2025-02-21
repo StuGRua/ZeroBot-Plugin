@@ -51,7 +51,7 @@ func init() {
 			return
 		}
 		status := resp.GenServerSubscribeSchema(addr, 0, 0)
-		msg := status.generateServerStatusMsg()
+		msg := status.GenerateServerStatusMsg()
 		if id := ctx.SendChain(msg...); id.ID() == 0 {
 			ctx.SendChain(message.Text("发送失败..."))
 			return
@@ -96,7 +96,7 @@ func init() {
 			return
 		}
 		// 删除数据库
-		err = db.deleteServerSubscribeById(ss.ID)
+		err = db.deleteServerSubscribeByID(ss.ID)
 		if err != nil {
 			logrus.Errorf("[mc-ob] deleteServerStatus error: %v", err)
 			ctx.SendChain(message.Text("订阅删除失败...", fmt.Sprintf("错误信息: %v", err)))
@@ -144,7 +144,7 @@ const (
 	// 版本变更
 	subStatusChangeTextNoticeVersionFormat = "版本变更: %v -> %v\n"
 	// 图标变更
-	subStatusChangeTextNoticeIconFormat = "图标变更\n"
+	subStatusChangeTextNoticeIconFormat = "图标变更:\n"
 )
 
 func formatSubStatusChange(old, new *ServerSubscribeSchema) (msg message.Message) {
@@ -159,18 +159,27 @@ func formatSubStatusChange(old, new *ServerSubscribeSchema) (msg message.Message
 		msg = append(msg, message.Text(fmt.Sprintf(subStatusChangeTextNoticeVersionFormat, old.Version, new.Version)))
 	}
 	if old.FaviconMD5 != new.FaviconMD5 {
-		// 图标变更
-		faviconOld, fErr := old.FaviconToBytes()
-		if fErr != nil {
-			logrus.Errorf("[mc-ob] faviconOld to image error: %v", fErr)
+		msg = append(msg, message.Text(subStatusChangeTextNoticeIconFormat))
+		var faviconOldBase64, faviconNewBase64 string
+		if old.FaviconRaw.checkPNG() {
+			faviconOldBase64 = old.FaviconRaw.toBase64String()
+			msg = append(msg, message.Text("旧图标："), message.Image(faviconOldBase64), message.Text("->"))
+		} else {
+			msg = append(msg, message.Text("旧图标：无->"))
 		}
-		faviconNew, fErr := new.FaviconToBytes()
-		if fErr != nil {
-			logrus.Errorf("[mc-ob] faviconNew to image error: %v", fErr)
+		if new.FaviconRaw.checkPNG() {
+			faviconNewBase64 = new.FaviconRaw.toBase64String()
+			msg = append(msg, message.Text("新图标："), message.Image(faviconNewBase64), message.Text("\n"))
+		} else {
+			msg = append(msg, message.Text("新图标：无\n"))
 		}
-		// image.Image 转 bytes
-		msg = append(msg, message.Text(subStatusChangeTextNoticeIconFormat), message.Text("旧图标："),
-			message.ImageBytes(faviconOld), message.Text("\n新图标："), message.ImageBytes(faviconNew), message.Text("\n"))
+	}
+	// 状态由不可达变为可达，反之
+	if old.PingDelay == PingDelayUnreachable && new.PingDelay != PingDelayUnreachable {
+		msg = append(msg, message.Text(fmt.Sprintf("Ping延迟：超时 -> %d\n", new.PingDelay)))
+	}
+	if old.PingDelay != PingDelayUnreachable && new.PingDelay == PingDelayUnreachable {
+		msg = append(msg, message.Text(fmt.Sprintf("Ping延迟：%d -> 超时\n", old.PingDelay)))
 	}
 	if len(msg) != 0 {
 		msg = append([]message.Segment{message.Text(subStatusChangeTextNoticeTitleFormat)}, msg...)
@@ -199,7 +208,7 @@ func singleServerScan(oldSubStatus *ServerSubscribeSchema) (changed bool, notify
 		return
 	}
 	// 检查是否有订阅信息变化
-	if oldSubStatus.isSubscribeSpecChanged(newSubStatus) {
+	if oldSubStatus.IsSubscribeSpecChanged(newSubStatus) {
 		logrus.Warnf("[mc-ob] server subscribe spec changed: (%+v) -> (%+v)", oldSubStatus, newSubStatus)
 		changed = true
 		// 更新数据库
@@ -209,7 +218,7 @@ func singleServerScan(oldSubStatus *ServerSubscribeSchema) (changed bool, notify
 			return
 		}
 		// 服务状态
-		newStatusMsg := newSubStatus.generateServerStatusMsg()
+		newStatusMsg := newSubStatus.GenerateServerStatusMsg()
 		// 发送变化信息 + 服务状态信息
 		notifyMsg = append(notifyMsg, formatSubStatusChange(oldSubStatus, newSubStatus)...)
 		notifyMsg = append(notifyMsg, message.Text("\n当前状态:\n"))

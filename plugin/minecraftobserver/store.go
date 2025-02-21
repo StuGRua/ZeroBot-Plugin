@@ -47,6 +47,7 @@ func initializeDB(dbpath string) error {
 }
 
 var (
+	// db 数据库实例
 	db *mcDB
 	// 开启并检查数据库链接
 	getDB = fcext.DoOnceOnSuccess(func(ctx *zero.Ctx) bool {
@@ -143,7 +144,7 @@ func (sdb *mcDB) insertServerSubscribe(ss *ServerSubscribeSchema) (err error) {
 	return
 }
 
-func (sdb *mcDB) deleteServerSubscribeById(id int64) (err error) {
+func (sdb *mcDB) deleteServerSubscribeByID(id int64) (err error) {
 	sdb.lock.Lock()
 	defer sdb.lock.Unlock()
 	if db == nil {
@@ -153,7 +154,7 @@ func (sdb *mcDB) deleteServerSubscribeById(id int64) (err error) {
 		return errors.New("ID不能为空")
 	}
 	if err = db.sdb.Table(tableServerSubscribe).Delete(&ServerSubscribeSchema{}).Where("id = ?", id).Error; err != nil {
-		logrus.Errorf("[mc-ob] deleteServerSubscribeById ERROR: %v", err)
+		logrus.Errorf("[mc-ob] deleteServerSubscribeByID ERROR: %v", err)
 		return
 	}
 	return
