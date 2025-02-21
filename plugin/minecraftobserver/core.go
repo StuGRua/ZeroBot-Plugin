@@ -137,39 +137,39 @@ const (
 	subStatusChangeTextNoticeIconFormat = "图标变更:\n"
 )
 
-func formatSubStatusChange(old, new *ServerSubscribeSchema) (msg message.Message) {
+func formatSubStatusChange(oldStatus, newStatus *ServerSubscribeSchema) (msg message.Message) {
 	msg = make(message.Message, 0)
-	if old == nil || new == nil {
+	if oldStatus == nil || newStatus == nil {
 		return
 	}
-	if old.Description != new.Description {
-		msg = append(msg, message.Text(fmt.Sprintf("描述变更: %v -> %v\n", old.Description, new.Description)))
+	if oldStatus.Description != newStatus.Description {
+		msg = append(msg, message.Text(fmt.Sprintf("描述变更: %v -> %v\n", oldStatus.Description, newStatus.Description)))
 	}
-	if old.Version != new.Version {
-		msg = append(msg, message.Text(fmt.Sprintf("版本变更: %v -> %v\n", old.Version, new.Version)))
+	if oldStatus.Version != newStatus.Version {
+		msg = append(msg, message.Text(fmt.Sprintf("版本变更: %v -> %v\n", oldStatus.Version, newStatus.Version)))
 	}
-	if old.FaviconMD5 != new.FaviconMD5 {
+	if oldStatus.FaviconMD5 != newStatus.FaviconMD5 {
 		msg = append(msg, message.Text(subStatusChangeTextNoticeIconFormat))
 		var faviconOldBase64, faviconNewBase64 string
-		if old.FaviconRaw.checkPNG() {
-			faviconOldBase64 = old.FaviconRaw.toBase64String()
+		if oldStatus.FaviconRaw.checkPNG() {
+			faviconOldBase64 = oldStatus.FaviconRaw.toBase64String()
 			msg = append(msg, message.Text("旧图标："), message.Image(faviconOldBase64), message.Text("->"))
 		} else {
 			msg = append(msg, message.Text("旧图标：无->"))
 		}
-		if new.FaviconRaw.checkPNG() {
-			faviconNewBase64 = new.FaviconRaw.toBase64String()
+		if newStatus.FaviconRaw.checkPNG() {
+			faviconNewBase64 = newStatus.FaviconRaw.toBase64String()
 			msg = append(msg, message.Text("新图标："), message.Image(faviconNewBase64), message.Text("\n"))
 		} else {
 			msg = append(msg, message.Text("新图标：无\n"))
 		}
 	}
 	// 状态由不可达变为可达，反之
-	if old.PingDelay == PingDelayUnreachable && new.PingDelay != PingDelayUnreachable {
-		msg = append(msg, message.Text(fmt.Sprintf("Ping延迟：超时 -> %d\n", new.PingDelay)))
+	if oldStatus.PingDelay == PingDelayUnreachable && newStatus.PingDelay != PingDelayUnreachable {
+		msg = append(msg, message.Text(fmt.Sprintf("Ping延迟：超时 -> %d\n", newStatus.PingDelay)))
 	}
-	if old.PingDelay != PingDelayUnreachable && new.PingDelay == PingDelayUnreachable {
-		msg = append(msg, message.Text(fmt.Sprintf("Ping延迟：%d -> 超时\n", old.PingDelay)))
+	if oldStatus.PingDelay != PingDelayUnreachable && newStatus.PingDelay == PingDelayUnreachable {
+		msg = append(msg, message.Text(fmt.Sprintf("Ping延迟：%d -> 超时\n", oldStatus.PingDelay)))
 	}
 	if len(msg) != 0 {
 		msg = append([]message.Segment{message.Text(subStatusChangeTextNoticeTitleFormat)}, msg...)

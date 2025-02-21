@@ -50,20 +50,20 @@ const (
 )
 
 // IsSubscribeSpecChanged 检查是否有订阅信息变化
-func (ss *ServerSubscribeSchema) IsSubscribeSpecChanged(new *ServerSubscribeSchema) (res bool) {
+func (ss *ServerSubscribeSchema) IsSubscribeSpecChanged(newStatus *ServerSubscribeSchema) (res bool) {
 	res = false
-	if ss == nil || new == nil {
+	if ss == nil || newStatus == nil {
 		res = false
 		return
 	}
 	// 描述变化、版本变化、Favicon变化
-	if ss.Description != new.Description || ss.Version != new.Version || ss.FaviconMD5 != new.FaviconMD5 {
+	if ss.Description != newStatus.Description || ss.Version != newStatus.Version || ss.FaviconMD5 != newStatus.FaviconMD5 {
 		res = true
 		return
 	}
 	// 状态由不可达变为可达 or 反之
-	if (ss.PingDelay == PingDelayUnreachable && new.PingDelay != PingDelayUnreachable) ||
-		(ss.PingDelay != PingDelayUnreachable && new.PingDelay == PingDelayUnreachable) {
+	if (ss.PingDelay == PingDelayUnreachable && newStatus.PingDelay != PingDelayUnreachable) ||
+		(ss.PingDelay != PingDelayUnreachable && newStatus.PingDelay == PingDelayUnreachable) {
 		res = true
 		return
 	}
@@ -136,8 +136,8 @@ func (ss *ServerSubscribeSchema) GenerateServerStatusMsg() (msg message.Message)
 // DB Schema End
 // ====================
 
-// serverPingAndListResp 服务器状态数据传输对象 From mc server response
-type serverPingAndListResp struct {
+// ServerPingAndListResp 服务器状态数据传输对象 From mc server response
+type ServerPingAndListResp struct {
 	Description chat.Message
 	Players     struct {
 		Max    int
@@ -183,7 +183,7 @@ func (i Icon) toBase64String() string {
 }
 
 // GenServerSubscribeSchema 将DTO转换为DB Schema
-func (dto *serverPingAndListResp) GenServerSubscribeSchema(addr string, id int64, targetGroupID int64) *ServerSubscribeSchema {
+func (dto *ServerPingAndListResp) GenServerSubscribeSchema(addr string, id int64, targetGroupID int64) *ServerSubscribeSchema {
 	if dto == nil {
 		return nil
 	}
