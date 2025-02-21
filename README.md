@@ -1538,6 +1538,20 @@ print("run[CQ:image,file="+j["img"]+"]")
 ### *低优先级*
 
 <details>
+  <summary>OpenAI聊天</summary>
+
+  `import _ "github.com/FloatTech/ZeroBot-Plugin/plugin/aichat"`
+
+  - [x] 设置AI聊天触发概率10
+  - [x] 设置AI聊天温度80
+  - [x] 设置AI聊天密钥xxx
+  - [x] 设置AI聊天模型名xxx
+  - [x] 设置AI聊天系统提示词xxx
+  - [x] 设置AI聊天分隔符`</think>`(留空则清除)
+  - [x] 设置AI聊天(不)响应AT
+
+</details>
+<details>
   <summary>骂人</summary>
 
   `import _ "github.com/FloatTech/ZeroBot-Plugin/plugin/curse"`
@@ -1548,7 +1562,7 @@ print("run[CQ:image,file="+j["img"]+"]")
 
 </details>
 <details>
-  <summary>词典匹配回复</summary>
+  <summary>词典匹配回复, 仅@触发</summary>
 
   `import _ "github.com/FloatTech/ZeroBot-Plugin/plugin/thesaurus"`
 

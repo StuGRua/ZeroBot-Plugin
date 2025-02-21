@@ -4,15 +4,15 @@ go 1.20
 
 require (
 	github.com/Baidu-AIP/golang-sdk v1.1.1
-	github.com/FloatTech/AnimeAPI v1.7.1-0.20250112071824-df647215d106
+	github.com/FloatTech/AnimeAPI v1.7.1-0.20250217140215-4856397458c9
 	github.com/FloatTech/floatbox v0.0.0-20241106130736-5aea0a935024
 	github.com/FloatTech/gg v1.1.3
 	github.com/FloatTech/imgfactory v0.2.2-0.20230413152719-e101cc3606ef
 	github.com/FloatTech/rendercard v0.2.0
-	github.com/FloatTech/sqlite v1.7.0
+	github.com/FloatTech/sqlite v1.7.1
 	github.com/FloatTech/ttl v0.0.0-20240716161252-965925764562
 	github.com/FloatTech/zbpctrl v1.7.0
-	github.com/FloatTech/zbputils v1.7.2-0.20241106140112-708bfd074ddd
+	github.com/FloatTech/zbputils v1.7.2-0.20250218141621-395d42447fcd
 	github.com/RomiChan/syncx v0.0.0-20240418144900-b7402ffdebc7
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5
 	github.com/Tnze/go-mc v1.20.2
@@ -22,6 +22,7 @@ require (
 	github.com/disintegration/imaging v1.6.2
 	github.com/fumiama/ahsai v0.1.0
 	github.com/fumiama/cron v1.3.0
+	github.com/fumiama/deepinfra v0.0.0-20250214082557-71569e85d503
 	github.com/fumiama/go-base16384 v1.7.0
 	github.com/fumiama/go-registry v0.2.7
 	github.com/fumiama/gotracemoe v0.0.3
