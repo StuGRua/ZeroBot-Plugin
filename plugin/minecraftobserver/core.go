@@ -86,6 +86,15 @@ func init() {
 		addr := strings.ReplaceAll(extractedPlainText, "mc服务器删除订阅 ", "")
 		// 通过群组id和服务器地址获取服务器状态
 		ss, err := db.getServerSubscribeByTargetGroupAndAddr(addr, ctx.Event.GroupID)
+		if err != nil {
+			logrus.Errorf("[mc-ob] getServerSubscribeByTargetGroupAndAddr error: %v", err)
+			ctx.SendChain(message.Text("查询订阅失败...", fmt.Sprintf("错误信息: %v", err)))
+			return
+		}
+		if ss == nil {
+			ctx.SendChain(message.Text("查询订阅失败...", fmt.Sprintf("错误信息: %v", "未找到订阅")))
+			return
+		}
 		// 删除数据库
 		err = db.deleteServerSubscribeById(ss.ID)
 		if err != nil {
@@ -130,8 +139,6 @@ func init() {
 
 const (
 	subStatusChangeTextNoticeTitleFormat = "Minecraft服务器状态变更通知:\n"
-	// 标题变更
-	subStatusChangeTextNoticeTitleChangeFormat = "标题变更: %v -> %v\n"
 	// 描述变更
 	subStatusChangeTextNoticeDescFormat = "描述变更: %v -> %v\n"
 	// 版本变更

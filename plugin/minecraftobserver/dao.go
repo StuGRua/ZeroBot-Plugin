@@ -108,21 +108,21 @@ func (sdb *mcDB) updateServerSubscribeStatus(ss *ServerSubscribeSchema) (err err
 	return
 }
 
-func (sdb *mcDB) setServerSubscribeStatusToUnreachable(id int64) (err error) {
-	sdb.lock.Lock()
-	defer sdb.lock.Unlock()
-	if db == nil {
-		return errors.New("数据库连接失败")
-	}
-	if err = db.sdb.Table(tableServerSubscribe).Model(&ServerSubscribeSchema{}).
-		Updates(map[string]interface{}{
-			ColNamePingDelay:  PingDelayUnreachable,
-			ColNameLastUpdate: time.Now().Unix()}).Where("id = ?", id).Error; err != nil {
-		logrus.Errorf("[mc-ob] updateServerSubscribeStatus ERROR: %v", err)
-		return
-	}
-	return
-}
+//func (sdb *mcDB) setServerSubscribeStatusToUnreachable(id int64) (err error) {
+//	sdb.lock.Lock()
+//	defer sdb.lock.Unlock()
+//	if db == nil {
+//		return errors.New("数据库连接失败")
+//	}
+//	if err = db.sdb.Table(tableServerSubscribe).Model(&ServerSubscribeSchema{}).
+//		Updates(map[string]interface{}{
+//			ColNamePingDelay:  PingDelayUnreachable,
+//			ColNameLastUpdate: time.Now().Unix()}).Where("id = ?", id).Error; err != nil {
+//		logrus.Errorf("[mc-ob] updateServerSubscribeStatus ERROR: %v", err)
+//		return
+//	}
+//	return
+//}
 
 func (sdb *mcDB) insertServerSubscribe(ss *ServerSubscribeSchema) (err error) {
 	sdb.lock.Lock()

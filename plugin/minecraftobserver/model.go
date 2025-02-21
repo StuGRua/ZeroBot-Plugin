@@ -45,11 +45,6 @@ type ServerSubscribeSchema struct {
 }
 
 const (
-	ColNamePingDelay  = "ping_delay"
-	ColNameLastUpdate = "last_update"
-)
-
-const (
 	// PingDelayUnreachable 不可达
 	PingDelayUnreachable = -1
 )
@@ -159,23 +154,20 @@ type serverPingAndListResp struct {
 // and prepended with "data:image/png;base64,".
 type Icon string
 
-func (i Icon) toImage() (icon image.Image, err error) {
-	const prefix = "data:image/png;base64,"
-	if !strings.HasPrefix(string(i), prefix) {
-		return nil, errors.Errorf("server icon should prepended with %s", prefix)
-	}
-	base64png := strings.TrimPrefix(string(i), prefix)
-	r := base64.NewDecoder(base64.StdEncoding, strings.NewReader(base64png))
-	icon, err = png.Decode(r)
-	return
-}
+//func (i Icon) toImage() (icon image.Image, err error) {
+//	const prefix = "data:image/png;base64,"
+//	if !strings.HasPrefix(string(i), prefix) {
+//		return nil, errors.Errorf("server icon should prepended with %s", prefix)
+//	}
+//	base64png := strings.TrimPrefix(string(i), prefix)
+//	r := base64.NewDecoder(base64.StdEncoding, strings.NewReader(base64png))
+//	icon, err = png.Decode(r)
+//	return
+//}
 
 func (i Icon) checkPNG() bool {
 	const prefix = "data:image/png;base64,"
-	if !strings.HasPrefix(string(i), prefix) {
-		return false
-	}
-	return true
+	return strings.HasPrefix(string(i), prefix)
 }
 
 // GenServerSubscribeSchema 将DTO转换为DB Schema
