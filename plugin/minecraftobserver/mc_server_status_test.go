@@ -2,7 +2,6 @@ package minecraftobserver
 
 import (
 	"fmt"
-	"github.com/FloatTech/imgfactory"
 	"testing"
 	"time"
 )
@@ -10,17 +9,19 @@ import (
 // dx.zhaomc.net
 func Test_makePicForPingListInfo(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
-		ss, err := getMinecraftServerStatus("dx.zhaomc.net")
+		ss, err := getMinecraftServerStatus("frp-pet.com:26278")
 		if err != nil {
 			t.Errorf("getMinecraftServerStatus() error = %v", err)
 		}
-		gotImg, err := ss.drawServerStatus()
-		if err != nil {
-			t.Errorf("drawServerStatus() error = %v", err)
-		}
-		if err = imgfactory.SavePNG2Path("test1.png", gotImg); err != nil {
-			t.Errorf("imgfactory.Save() error = %v", err)
-		}
+		msg := ss.generateServerStatusMsg()
+		fmt.Printf("msg: %v\n", msg)
+		//gotImg, err := ss.drawServerStatus()
+		//if err != nil {
+		//	t.Errorf("drawServerStatus() error = %v", err)
+		//}
+		//if err = imgfactory.SavePNG2Path("test1.png", gotImg); err != nil {
+		//	t.Errorf("imgfactory.Save() error = %v", err)
+		//}
 	})
 	t.Run("不可达", func(t *testing.T) {
 		ss, err := getMinecraftServerStatus("dx.zhaomc.net")
@@ -28,13 +29,14 @@ func Test_makePicForPingListInfo(t *testing.T) {
 			t.Errorf("getMinecraftServerStatus() error = %v", err)
 		}
 		ss.Delay = time.Duration(-1)
-		gotImg, err := ss.drawServerStatus()
-		if err != nil {
-			t.Errorf("drawServerStatus() error = %v", err)
-		}
-		if err = imgfactory.SavePNG2Path("test2.png", gotImg); err != nil {
-			t.Errorf("imgfactory.Save() error = %v", err)
-		}
+		msg := ss.generateServerStatusMsg()
+		fmt.Printf("msg: %v\n", msg)
+		//if err != nil {
+		//	t.Errorf("drawServerStatus() error = %v", err)
+		//}
+		//if err = imgfactory.SavePNG2Path("test2.png", gotImg); err != nil {
+		//	t.Errorf("imgfactory.Save() error = %v", err)
+		//}
 	})
 }
 

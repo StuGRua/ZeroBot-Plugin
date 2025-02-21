@@ -50,14 +50,13 @@ func init() {
 			ctx.SendChain(message.Text("服务器状态获取失败...", fmt.Sprintf("错误信息: %v", err)))
 			return
 		}
-		// 绘制图片
-		msg, err := ss.generateServerStatusPicMsg()
-		if err != nil {
-			logrus.Errorf("[mc-ob] drawAndGenerateServerStatusNoticeMessage error: %v", err)
-			ctx.SendChain(message.Text("服务器状态获取失败...", fmt.Sprintf("错误信息: %v", err)))
-			return
-		}
-		if id := ctx.SendChain(msg); id.ID() == 0 {
+		msg := ss.generateServerStatusMsg()
+		//if err != nil {
+		//	logrus.Errorf("[mc-ob] drawAndGenerateServerStatusNoticeMessage error: %v", err)
+		//	ctx.SendChain(message.Text("服务器状态获取失败...", fmt.Sprintf("错误信息: %v", err)))
+		//	return
+		//}
+		if id := ctx.SendChain(msg...); id.ID() == 0 {
 			ctx.SendChain(message.Text("发送失败..."))
 			return
 		}
@@ -202,16 +201,17 @@ func singleServerScan(oldSubStatus *ServerSubscribeSchema) (changed bool, notify
 			logrus.Errorf("[mc-ob] updateServerSubscribeStatus error: %v", err)
 			return
 		}
-		// 服务状态渲染图
-		newStatusPicMsg, gErr := rawServerStatus.generateServerStatusPicMsg()
-		if gErr != nil {
-			logrus.Errorf("[mc-ob] generateServerStatusPicMsg error: %v", gErr)
-			err = gErr
-			return
-		}
+		// 服务状态
+		newStatusMsg := rawServerStatus.generateServerStatusMsg()
+		//if gErr != nil {
+		//	logrus.Errorf("[mc-ob] generateServerStatusPicMsg error: %v", gErr)
+		//	err = gErr
+		//	return
+		//}
 		// 发送变化信息 + 服务状态信息
 		notifyMsg = append(notifyMsg, formatSubStatusChange(oldSubStatus, newSubStatus)...)
-		notifyMsg = append(notifyMsg, newStatusPicMsg)
+		notifyMsg = append(notifyMsg, message.Text("\n当前状态:\n"))
+		notifyMsg = append(notifyMsg, newStatusMsg...)
 	}
 	return
 }
