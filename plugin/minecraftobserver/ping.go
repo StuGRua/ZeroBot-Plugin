@@ -2,7 +2,6 @@ package minecraftobserver
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/RomiChan/syncx"
 	"github.com/Tnze/go-mc/bot"
 	"github.com/sirupsen/logrus"
@@ -23,8 +22,8 @@ type _pingServerUnreachableCounter struct {
 	firstUnreachableTs time.Time
 }
 
-func addPingServerUnreachableCounter(groupID int64, addr string, ts time.Time) (afterAdded int64, getTs time.Time) {
-	key := fmt.Sprintf("%d-%s", groupID, addr)
+func addPingServerUnreachableCounter(addr string, ts time.Time) (afterAdded int64, getTs time.Time) {
+	key := addr
 	get, ok := pingServerUnreachableCounter.Load(key)
 	if !ok {
 		pingServerUnreachableCounter.Store(key, _pingServerUnreachableCounter{
@@ -41,8 +40,8 @@ func addPingServerUnreachableCounter(groupID int64, addr string, ts time.Time) (
 	return get.count + 1, get.firstUnreachableTs
 }
 
-func resetPingServerUnreachableCounter(groupID int64, addr string) {
-	key := fmt.Sprintf("%d-%s", groupID, addr)
+func resetPingServerUnreachableCounter(addr string) {
+	key := addr
 	pingServerUnreachableCounter.Delete(key)
 }
 

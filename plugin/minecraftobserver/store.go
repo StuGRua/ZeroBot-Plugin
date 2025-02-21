@@ -2,6 +2,7 @@ package minecraftobserver
 
 import (
 	"errors"
+	"fmt"
 	fcext "github.com/FloatTech/floatbox/ctxext"
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
@@ -13,11 +14,18 @@ import (
 )
 
 const (
-	tableServerSubscribe = "server_subscribe"
-	dbPath               = "minecraft_observer.dbInstance"
+	dbPath = "minecraft_observer"
+
+	targetTypeGroup = 1
+	targetTypeUser  = 2
 )
 
-var errDBConn = errors.New("数据库连接失败")
+var (
+	// 数据库连接失败
+	errDBConn = errors.New("数据库连接失败")
+	// 参数错误
+	errParam = errors.New("参数错误")
+)
 
 type db struct {
 	sdb  *gorm.DB
@@ -39,7 +47,7 @@ func initializeDB(dbpath string) error {
 		logrus.Errorln(logPrefix+"initializeDB ERROR: ", err)
 		return err
 	}
-	gdb.Table(tableServerSubscribe).AutoMigrate(&ServerSubscribeSchema{})
+	gdb.AutoMigrate(&ServerStatus{}, &ServerSubscribe{})
 	dbInstance = &db{
 		sdb:  gdb,
 		lock: sync.RWMutex{},
@@ -63,33 +71,21 @@ var (
 	})
 )
 
-// getAllServerSubscribeByTargetGroup 根据群组ID获取所有订阅的服务器
-func (d *db) getAllServerSubscribeByTargetGroup(targetGroupID int64) ([]*ServerSubscribeSchema, error) {
+// 通过群组id和服务器地址获取状态
+func (d *db) getServerStatus(addr string) (*ServerStatus, error) {
 	if d == nil {
 		return nil, errDBConn
 	}
-	var ss []*ServerSubscribeSchema
-	if err := d.sdb.Table(tableServerSubscribe).Where("target_group = ?", targetGroupID).Find(&ss).Error; err != nil {
-		logrus.Errorln(logPrefix+"getAllServerSubscribeByTargetGroup ERROR: ", err)
-		return nil, err
-	}
-	return ss, nil
-}
-
-// 通过群组id和服务器地址获取订阅
-func (d *db) getServerSubscribeByTargetGroupAndAddr(addr string, targetGroupID int64) (*ServerSubscribeSchema, error) {
-	if d == nil {
-		return nil, errDBConn
-	}
-	var ss ServerSubscribeSchema
-	if err := d.sdb.Table(tableServerSubscribe).Where("server_addr = ? and target_group = ?", addr, targetGroupID).Find(&ss).Error; err != nil {
-		logrus.Errorln(logPrefix+"getServerSubscribeByTargetGroupAndAddr ERROR: ", err)
+	var ss ServerStatus
+	if err := d.sdb.Model(&ss).Where("server_addr = ?", addr).First(&ss).Error; err != nil {
+		logrus.Errorln(logPrefix+"getServerStatus ERROR: ", err)
 		return nil, err
 	}
 	return &ss, nil
 }
 
-func (d *db) updateServerSubscribeStatus(ss *ServerSubscribeSchema) (err error) {
+// 更新服务器状态
+func (d *db) updateServerStatus(ss *ServerStatus) (err error) {
 	if d == nil {
 		return errDBConn
 	}
@@ -98,49 +94,87 @@ func (d *db) updateServerSubscribeStatus(ss *ServerSubscribeSchema) (err error) 
 	if ss == nil {
 		return errors.New("参数错误")
 	}
-	if ss.ID == 0 {
-		return errors.New("ID不能为空")
-	}
-	if ss.LastUpdate == 0 {
-		ss.LastUpdate = time.Now().Unix()
-	}
-	if err = d.sdb.Table(tableServerSubscribe).Model(ss).Update(ss).Where("id = ?", ss.ID).Error; err != nil {
-		logrus.Errorln(logPrefix+"updateServerSubscribeStatus ERROR: ", err)
+	ss.LastUpdate = time.Now().Unix()
+	ss2 := ss.DeepCopy()
+	if err = d.sdb.Where(&ServerStatus{ServerAddr: ss.ServerAddr}).Assign(ss2).FirstOrCreate(ss).Debug().Error; err != nil {
+		logrus.Errorln(logPrefix, fmt.Sprintf("updateServerStatus %v ERROR: %v", ss, err))
 		return
 	}
 	return
 }
 
-func (d *db) insertServerSubscribe(ss *ServerSubscribeSchema) (err error) {
-	if d == nil {
-		return errDBConn
-	}
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	if ss == nil {
-		return errors.New("参数错误")
-	}
-	if ss.LastUpdate == 0 {
-		ss.LastUpdate = time.Now().Unix()
-	}
-	if err = d.sdb.Table(tableServerSubscribe).Create(ss).Error; err != nil {
-		logrus.Errorln(logPrefix+"insertServerSubscribe ERROR: ", err)
+func (d *db) delServerStatus(addr string) (err error) {
+	if err = d.sdb.Model(&ServerStatus{}).Delete(&ServerStatus{}).Where("server_addr = ?", addr).Error; err != nil {
+		logrus.Errorln(logPrefix+"deleteSubscribe ERROR: ", err)
 		return
 	}
 	return
 }
 
-func (d *db) deleteServerSubscribeByID(id int64) (err error) {
+// 新增订阅
+func (d *db) newSubscribe(addr string, targetID, targetType int64) (err error) {
 	if d == nil {
 		return errDBConn
 	}
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	if id == 0 {
-		return errors.New("ID不能为空")
+	if targetID == 0 || (targetType != 1 && targetType != 2) {
+		logrus.Errorln(logPrefix+"newSubscribe ERROR: 参数错误 ", targetID, " ", targetType)
+		return errParam
 	}
-	if err = d.sdb.Table(tableServerSubscribe).Delete(&ServerSubscribeSchema{}).Where("id = ?", id).Error; err != nil {
-		logrus.Errorln(logPrefix+"deleteServerSubscribeByID ERROR: ", err)
+	ss := &ServerSubscribe{
+		ServerAddr: addr,
+		TargetID:   targetID,
+		TargetType: targetType,
+		LastUpdate: time.Now().Unix(),
+	}
+	if err = d.sdb.Model(&ss).Create(ss).Error; err != nil {
+		logrus.Errorln(logPrefix+"newSubscribe ERROR: ", err)
+		return
+	}
+	return
+}
+
+// 删除订阅
+func (d *db) deleteSubscribe(addr string, targetID int64, targetType int64) (err error) {
+	if d == nil {
+		return errDBConn
+	}
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	if addr == "" || targetID == 0 {
+		return errParam
+	}
+	if err = d.sdb.Model(&ServerSubscribe{}).Delete(&ServerSubscribe{}).Where("server_addr = ? and target_id = ? and target_type = ?", addr, targetID, targetType).Error; err != nil {
+		logrus.Errorln(logPrefix+"deleteSubscribe ERROR: ", err)
+
+		return
+	}
+
+	// 扫描是否还有订阅，如果没有则删除服务器状态
+	var cnt int
+	err = d.sdb.Model(&ServerSubscribe{}).Where("server_addr = ?", addr).Count(&cnt).Error
+	if err != nil {
+		logrus.Errorln(logPrefix+"deleteSubscribe ERROR: ", err)
+		return
+	}
+	if cnt == 0 {
+		if err = d.sdb.Model(&ServerStatus{}).Delete(&ServerStatus{}).Where("server_addr = ?", addr).Error; err != nil {
+			logrus.Errorln(logPrefix+"deleteSubscribe ERROR: ", err)
+			return
+		}
+	}
+	return
+}
+
+// 获取所有订阅
+func (d *db) getAllSubscribes() (subs []ServerSubscribe, err error) {
+	if d == nil {
+		return nil, errDBConn
+	}
+	subs = []ServerSubscribe{}
+	if err = d.sdb.Model(&subs).Find(&subs).Error; err != nil {
+		logrus.Errorln(logPrefix+"getAllSubscribes ERROR: ", err)
 		return
 	}
 	return

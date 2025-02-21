@@ -6,10 +6,6 @@ import (
 	"testing"
 )
 
-func Test_formatSubStatusChange(t *testing.T) {
-
-}
-
 func Test_singleServerScan(t *testing.T) {
 	initErr := initializeDB("data/minecraftobserver/" + dbPath)
 	if initErr != nil {
@@ -20,23 +16,22 @@ func Test_singleServerScan(t *testing.T) {
 	}
 	t.Run("状态变更", func(t *testing.T) {
 		cleanTestData(t)
-		newSS1 := &ServerSubscribeSchema{
+		newSS1 := &ServerStatus{
 			ServerAddr:  "cn.nekoland.top",
-			TargetGroup: 123456,
 			Description: "测试服务器",
 			Players:     "1/20",
 			Version:     "1.16.5",
 			FaviconMD5:  "",
 		}
-		err := dbInstance.insertServerSubscribe(newSS1)
+		err := dbInstance.updateServerStatus(newSS1)
 		if err != nil {
 			t.Fatalf("upsertServerStatus() error = %v", err)
 		}
-		ss2, err := dbInstance.getServerSubscribeByTargetGroupAndAddr("cn.nekoland.top", 123456)
+		err = dbInstance.newSubscribe("cn.nekoland.top", 123456, 1)
 		if err != nil {
 			t.Fatalf("getServerSubscribeByTargetGroupAndAddr() error = %v", err)
 		}
-		changed, msg, err := singleServerScan(ss2)
+		changed, msg, err := singleServerScan(newSS1)
 		if err != nil {
 			t.Fatalf("singleServerScan() error = %v", err)
 		}
@@ -51,25 +46,24 @@ func Test_singleServerScan(t *testing.T) {
 
 	t.Run("可达 -> 不可达", func(t *testing.T) {
 		cleanTestData(t)
-		newSS1 := &ServerSubscribeSchema{
+		newSS1 := &ServerStatus{
 			ServerAddr:  "dx.123213213123123.net",
-			TargetGroup: 123456,
 			Description: "测试服务器",
 			Players:     "1/20",
 			Version:     "1.16.5",
 			FaviconMD5:  "",
 			PingDelay:   123,
 		}
-		err := dbInstance.insertServerSubscribe(newSS1)
+		err := dbInstance.updateServerStatus(newSS1)
 		if err != nil {
 			t.Fatalf("upsertServerStatus() error = %v", err)
 		}
-		ss2, err := dbInstance.getServerSubscribeByTargetGroupAndAddr("dx.123213213123123.net", 123456)
+		err = dbInstance.newSubscribe("dx.123213213123123.net", 123456, 1)
 		if err != nil {
 			t.Fatalf("getServerSubscribeByTargetGroupAndAddr() error = %v", err)
 		}
 		var msg message.Message
-		changed, _, err := singleServerScan(ss2)
+		changed, _, err := singleServerScan(newSS1)
 		if err != nil {
 			t.Fatalf("singleServerScan() error = %v", err)
 		}
@@ -77,7 +71,7 @@ func Test_singleServerScan(t *testing.T) {
 			t.Fatalf("singleServerScan() got = %v, want false", changed)
 		}
 		// 第二次
-		changed, _, err = singleServerScan(ss2)
+		changed, _, err = singleServerScan(newSS1)
 		if err != nil {
 			t.Fatalf("singleServerScan() error = %v", err)
 		}
@@ -85,7 +79,7 @@ func Test_singleServerScan(t *testing.T) {
 			t.Fatalf("singleServerScan() got = %v, want false", changed)
 		}
 		// 第三次
-		changed, msg, err = singleServerScan(ss2)
+		changed, msg, err = singleServerScan(newSS1)
 		if err != nil {
 			t.Fatalf("singleServerScan() error = %v", err)
 		}
@@ -100,24 +94,23 @@ func Test_singleServerScan(t *testing.T) {
 
 	t.Run("不可达 -> 可达", func(t *testing.T) {
 		cleanTestData(t)
-		newSS1 := &ServerSubscribeSchema{
+		newSS1 := &ServerStatus{
 			ServerAddr:  "cn.nekoland.top",
-			TargetGroup: 123456,
 			Description: "测试服务器",
 			Players:     "1/20",
 			Version:     "1.16.5",
 			FaviconMD5:  "",
 			PingDelay:   PingDelayUnreachable,
 		}
-		err := dbInstance.insertServerSubscribe(newSS1)
+		err := dbInstance.updateServerStatus(newSS1)
 		if err != nil {
 			t.Fatalf("upsertServerStatus() error = %v", err)
 		}
-		ss2, err := dbInstance.getServerSubscribeByTargetGroupAndAddr("cn.nekoland.top", 123456)
+		err = dbInstance.newSubscribe("cn.nekoland.top", 123456, 1)
 		if err != nil {
-			t.Fatalf("getServerSubscribeByTargetGroupAndAddr() error = %v", err)
+			t.Fatalf("newSubscribe() error = %v", err)
 		}
-		changed, msg, err := singleServerScan(ss2)
+		changed, msg, err := singleServerScan(newSS1)
 		if err != nil {
 			t.Fatalf("singleServerScan() error = %v", err)
 		}

@@ -1,11 +1,17 @@
 package minecraftobserver
 
 import (
+	"errors"
+	"github.com/jinzhu/gorm"
 	"testing"
 )
 
 func cleanTestData(t *testing.T) {
-	err := dbInstance.sdb.Table(tableServerSubscribe).Delete(&ServerSubscribeSchema{}).Where("id > 0").Error
+	err := dbInstance.sdb.Delete(&ServerStatus{}).Where("id > 0").Error
+	if err != nil {
+		t.Fatalf("cleanTestData() error = %v", err)
+	}
+	err = dbInstance.sdb.Delete(&ServerSubscribe{}).Where("id > 0").Error
 	if err != nil {
 		t.Fatalf("cleanTestData() error = %v", err)
 	}
@@ -21,142 +27,134 @@ func Test_DAO(t *testing.T) {
 	}
 	t.Run("insert", func(t *testing.T) {
 		cleanTestData(t)
-		newSS1 := &ServerSubscribeSchema{
+		newSS1 := &ServerStatus{
 			ServerAddr:  "dx.zhaomc.net",
-			TargetGroup: 123456,
 			Description: "测试服务器",
 			Players:     "1/20",
 			Version:     "1.16.5",
 			FaviconMD5:  "1234567",
 		}
-		newSS2 := &ServerSubscribeSchema{
+		newSS2 := &ServerStatus{
 			ServerAddr:  "dx.zhaomc.net",
-			TargetGroup: 777777,
 			Description: "测试服务器",
 			Players:     "1/20",
-			Version:     "1.16.5",
+			Version:     "1.16.8",
 			FaviconMD5:  "1234567",
 		}
-		err := dbInstance.insertServerSubscribe(newSS1)
+		err := dbInstance.updateServerStatus(newSS1)
 		if err != nil {
 			t.Errorf("upsertServerStatus() error = %v", err)
 		}
-		err = dbInstance.insertServerSubscribe(newSS2)
+		err = dbInstance.updateServerStatus(newSS2)
 		if err != nil {
 			t.Errorf("upsertServerStatus() error = %v", err)
+		}
+
+		// check insert
+		queryResult, err := dbInstance.getServerStatus("dx.zhaomc.net")
+		if err != nil {
+			t.Fatalf("getServerStatus() error = %v", err)
+		}
+		if queryResult == nil {
+			t.Fatalf("getServerStatus() got = %v, want not nil", queryResult)
+		}
+		if queryResult.Version != "1.16.8" {
+			t.Fatalf("getServerStatus() got = %v, want 1.16.8", queryResult.Version)
+		}
+
+		err = dbInstance.newSubscribe("dx.zhaomc.net", 123456, targetTypeGroup)
+		if err != nil {
+			t.Fatalf("getAllServer() error = %v", err)
+		}
+		err = dbInstance.newSubscribe("dx.zhaomc.net", 123456, targetTypeUser)
+		if err != nil {
+			t.Fatalf("getAllServer() error = %v", err)
 		}
 		// check insert
-		queryResult, err := dbInstance.getAllServerSubscribeByTargetGroup(123456)
+		res, err := dbInstance.getAllSubscribes()
 		if err != nil {
-			t.Errorf("getAllServerSubscribeByTargetGroup() error = %v", err)
+			t.Fatalf("getAllServer() error = %v", err)
 		}
-		if len(queryResult) != 1 {
-			t.Errorf("getAllServerSubscribeByTargetGroup() got = %v, want 1", len(queryResult))
+		if len(res) != 2 {
+			t.Fatalf("getAllServer() got = %v, want 2", len(res))
 		}
-		if queryResult[0].TargetGroup != 123456 {
-			t.Errorf("getAllServerSubscribeByTargetGroup() got = %v, want 123456", queryResult[0].TargetGroup)
+		// 检查是否符合预期
+		if res[0].ServerAddr != "dx.zhaomc.net" {
+			t.Fatalf("getAllServer() got = %v, want dx.zhaomc.net", res[0].ServerAddr)
 		}
-
-		// check insert 2
-		queryResult2, err := dbInstance.getAllServerSubscribeByTargetGroup(777777)
-		if err != nil {
-			t.Errorf("getAllServerSubscribeByTargetGroup() error = %v", err)
+		if res[0].TargetType != targetTypeGroup {
+			t.Fatalf("getAllServer() got = %v, want %v", res[0].TargetType, targetTypeGroup)
 		}
-		if len(queryResult2) != 1 {
-			t.Errorf("getAllServerSubscribeByTargetGroup() got = %v, want 1", len(queryResult2))
+		if res[1].ServerAddr != "dx.zhaomc.net" {
+			t.Fatalf("getAllServer() got = %v, want dx.zhaomc.net", res[1].ServerAddr)
 		}
-		if queryResult2[0].TargetGroup != 777777 {
-			t.Errorf("getAllServerSubscribeByTargetGroup() got = %v, want 777777", queryResult2[0].TargetGroup)
-		}
-
-		// 点查
-		queryResult3, err := dbInstance.getServerSubscribeByTargetGroupAndAddr("dx.zhaomc.net", 123456)
-		if err != nil {
-			t.Fatalf("getServerSubscribeByTargetGroupAndAddr() error = %v", err)
-		}
-		if queryResult3.TargetGroup != 123456 {
-			t.Fatalf("getServerSubscribeByTargetGroupAndAddr() got = %v, want 123456", queryResult3.TargetGroup)
+		if res[1].TargetType != targetTypeUser {
+			t.Fatalf("getAllServer() got = %v, want %v", res[1].TargetType, targetTypeUser)
 		}
 
 	})
 	t.Run("update", func(t *testing.T) {
 		cleanTestData(t)
-		newSS := &ServerSubscribeSchema{
+		newSS := &ServerStatus{
 			ServerAddr:  "dx.zhaomc.net",
-			TargetGroup: 123456,
 			Description: "测试服务器",
 			Players:     "1/20",
 			Version:     "1.16.5",
 			FaviconMD5:  "1234567",
 		}
-		err := dbInstance.insertServerSubscribe(newSS)
+		err := dbInstance.updateServerStatus(newSS)
 		if err != nil {
 			t.Errorf("upsertServerStatus() error = %v", err)
 		}
-		// check insert
-		queryResult, err := dbInstance.getAllServerSubscribeByTargetGroup(123456)
+		err = dbInstance.updateServerStatus(&ServerStatus{
+			ServerAddr:  "dx.zhaomc.net",
+			Description: "更新测试",
+			Players:     "1/20",
+			Version:     "1.16.5",
+			FaviconMD5:  "1234567",
+		})
 		if err != nil {
-			t.Errorf("getAllServerSubscribeByTargetGroup() error = %v", err)
-		}
-		if len(queryResult) != 1 {
-			t.Errorf("getAllServerSubscribeByTargetGroup() got = %v, want 1", len(queryResult))
-		}
-		if queryResult[0].TargetGroup != 123456 {
-			t.Errorf("getAllServerSubscribeByTargetGroup() got = %v, want 123456", queryResult[0].TargetGroup)
-		}
-		queryResult[0].Description = "更新测试"
-		err = dbInstance.updateServerSubscribeStatus(queryResult[0])
-		if err != nil {
-			t.Errorf("updateServerSubscribeStatus() error = %v", err)
+			t.Errorf("upsertServerStatus() error = %v", err)
 		}
 		// check update
-		queryResult2, err := dbInstance.getAllServerSubscribeByTargetGroup(123456)
+		queryResult2, err := dbInstance.getServerStatus("dx.zhaomc.net")
 		if err != nil {
-			t.Errorf("getAllServerSubscribeByTargetGroup() error = %v", err)
+			t.Errorf("getAllServer() error = %v", err)
 		}
-		if len(queryResult2) != 1 {
-			t.Errorf("getAllServerSubscribeByTargetGroup() got = %v, want 1", len(queryResult2))
-		}
-		if queryResult2[0].Description != "更新测试" {
-			t.Errorf("updateServerSubscribeStatus() got = %v, want 更新测试", queryResult2[0].Description)
+		if queryResult2.Description != "更新测试" {
+			t.Errorf("getAllServer() got = %v, want 更新测试", queryResult2.Description)
 		}
 	})
 	t.Run("delete", func(t *testing.T) {
 		cleanTestData(t)
-		newSS := &ServerSubscribeSchema{
+		newSS := &ServerStatus{
 			ServerAddr:  "dx.zhaomc.net",
-			TargetGroup: 123456,
 			Description: "测试服务器",
 			Players:     "1/20",
 			Version:     "1.16.5",
 			FaviconMD5:  "1234567",
 		}
-		err := dbInstance.insertServerSubscribe(newSS)
+		err := dbInstance.updateServerStatus(newSS)
 		if err != nil {
 			t.Errorf("upsertServerStatus() error = %v", err)
 		}
 		// check insert
-		queryResult, err := dbInstance.getAllServerSubscribeByTargetGroup(123456)
+		queryResult, err := dbInstance.getServerStatus("dx.zhaomc.net")
 		if err != nil {
-			t.Errorf("getAllServerSubscribeByTargetGroup() error = %v", err)
+			t.Fatalf("getAllServer() error = %v", err)
 		}
-		if len(queryResult) != 1 {
-			t.Errorf("getAllServerSubscribeByTargetGroup() got = %v, want 1", len(queryResult))
+		if queryResult == nil {
+			t.Fatalf("getAllServer() got = %v, want not nil", queryResult)
 		}
-		if queryResult[0].TargetGroup != 123456 {
-			t.Errorf("getAllServerSubscribeByTargetGroup() got = %v, want 123456", queryResult[0].TargetGroup)
-		}
-		err = dbInstance.deleteServerSubscribeByID(queryResult[0].ID)
+		err = dbInstance.delServerStatus("dx.zhaomc.net")
 		if err != nil {
-			t.Errorf("deleteServerStatus() error = %v", err)
+			t.Fatalf("deleteServerStatus() error = %v", err)
 		}
 		// check delete
-		queryResult2, err := dbInstance.getAllServerSubscribeByTargetGroup(123456)
-		if err != nil {
-			t.Errorf("getAllServerSubscribeByTargetGroup() error = %v", err)
+		_, err = dbInstance.getServerStatus("dx.zhaomc.net")
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			t.Fatalf("getAllServer() error = %v", err)
 		}
-		if len(queryResult2) != 0 {
-			t.Errorf("getAllServerSubscribeByTargetGroup() got = %v, want 0", len(queryResult2))
-		}
+
 	})
 }

@@ -20,14 +20,12 @@ import (
 // ====================
 // DB Schema
 
-// ServerSubscribeSchema 服务器订阅信息
-type ServerSubscribeSchema struct {
+// ServerStatus 服务器状态
+type ServerStatus struct {
 	// ID 主键
 	ID int64 `json:"id" gorm:"column:id;primary_key:pk_id;auto_increment;default:0"`
 	// 服务器地址
-	ServerAddr string `json:"server_addr" gorm:"column:server_addr;default:'';unique_index:idx_server_addr_target_group"`
-	// 信息推送群组
-	TargetGroup int64 `json:"target_group" gorm:"column:target_group;default:0;unique_index:idx_server_addr_target_group;index:idx_target_group"`
+	ServerAddr string `json:"server_addr" gorm:"column:server_addr;default:'';unique_index:udx_server_addr"`
 	// 服务器描述
 	Description string `json:"description" gorm:"column:description;default:null;type:CLOB"`
 	// 在线玩家
@@ -44,13 +42,27 @@ type ServerSubscribeSchema struct {
 	LastUpdate int64 `json:"last_update" gorm:"column:last_update;default:0"`
 }
 
+// ServerSubscribe 订阅信息
+type ServerSubscribe struct {
+	// ID 主键
+	ID int64 `json:"id" gorm:"column:id;primary_key:pk_id;auto_increment;default:0"`
+	// 服务器地址
+	ServerAddr string `json:"server_addr" gorm:"column:server_addr;default:'';unique_index:udx_ait"`
+	// 推送目标id
+	TargetID int64 `json:"target_id" gorm:"column:target_id;default:0;unique_index:udx_ait"`
+	// 类型 1：群组 2：个人
+	TargetType int64 `json:"target_type" gorm:"column:target_type;default:0;unique_index:udx_ait"`
+	// 更新时间
+	LastUpdate int64 `json:"last_update" gorm:"column:last_update;default:0"`
+}
+
 const (
 	// PingDelayUnreachable 不可达
 	PingDelayUnreachable = -1
 )
 
-// IsSubscribeSpecChanged 检查是否有订阅信息变化
-func (ss *ServerSubscribeSchema) IsSubscribeSpecChanged(newStatus *ServerSubscribeSchema) (res bool) {
+// IsServerStatusSpecChanged 检查是否有状态变化
+func (ss *ServerStatus) IsServerStatusSpecChanged(newStatus *ServerStatus) (res bool) {
 	res = false
 	if ss == nil || newStatus == nil {
 		res = false
@@ -70,14 +82,14 @@ func (ss *ServerSubscribeSchema) IsSubscribeSpecChanged(newStatus *ServerSubscri
 	return
 }
 
-// DeepCopyTo 深拷贝
-func (ss *ServerSubscribeSchema) DeepCopyTo(dst *ServerSubscribeSchema) {
-	if ss == nil || dst == nil {
+// DeepCopy 深拷贝
+func (ss *ServerStatus) DeepCopy() (dst *ServerStatus) {
+	if ss == nil {
 		return
 	}
+	dst = &ServerStatus{}
 	dst.ID = ss.ID
 	dst.ServerAddr = ss.ServerAddr
-	dst.TargetGroup = ss.TargetGroup
 	dst.Description = ss.Description
 	dst.Players = ss.Players
 	dst.Version = ss.Version
@@ -85,10 +97,11 @@ func (ss *ServerSubscribeSchema) DeepCopyTo(dst *ServerSubscribeSchema) {
 	dst.FaviconRaw = ss.FaviconRaw
 	dst.PingDelay = ss.PingDelay
 	dst.LastUpdate = ss.LastUpdate
+	return
 }
 
 // FaviconToImage 转换为 image.Image
-func (ss *ServerSubscribeSchema) FaviconToImage() (icon image.Image, err error) {
+func (ss *ServerStatus) FaviconToImage() (icon image.Image, err error) {
 	const prefix = "data:image/png;base64,"
 	if !strings.HasPrefix(string(ss.FaviconRaw), prefix) {
 		return nil, errors.Errorf("server icon should prepended with %s", prefix)
@@ -100,7 +113,7 @@ func (ss *ServerSubscribeSchema) FaviconToImage() (icon image.Image, err error) 
 }
 
 // FaviconToBytes ToBytes 转换为bytes
-func (ss *ServerSubscribeSchema) FaviconToBytes() (b []byte, err error) {
+func (ss *ServerStatus) FaviconToBytes() (b []byte, err error) {
 	i, err := ss.FaviconToImage()
 	if err != nil {
 		return nil, err
@@ -113,7 +126,7 @@ func (ss *ServerSubscribeSchema) FaviconToBytes() (b []byte, err error) {
 }
 
 // GenerateServerStatusMsg 生成服务器状态消息
-func (ss *ServerSubscribeSchema) GenerateServerStatusMsg() (msg message.Message) {
+func (ss *ServerStatus) GenerateServerStatusMsg() (msg message.Message) {
 	msg = make(message.Message, 0)
 	if ss == nil {
 		return
@@ -183,15 +196,14 @@ func (i Icon) toBase64String() string {
 }
 
 // GenServerSubscribeSchema 将DTO转换为DB Schema
-func (dto *ServerPingAndListResp) GenServerSubscribeSchema(addr string, id int64, targetGroupID int64) *ServerSubscribeSchema {
+func (dto *ServerPingAndListResp) GenServerSubscribeSchema(addr string, id int64) *ServerStatus {
 	if dto == nil {
 		return nil
 	}
 	faviconMD5 := md5.Sum(helper.StringToBytes(string(dto.Favicon)))
-	return &ServerSubscribeSchema{
+	return &ServerStatus{
 		ID:          id,
 		ServerAddr:  addr,
-		TargetGroup: targetGroupID,
 		Description: dto.Description.ClearString(),
 		Version:     dto.Version.Name,
 		Players:     fmt.Sprintf("%d/%d", dto.Players.Online, dto.Players.Max),
