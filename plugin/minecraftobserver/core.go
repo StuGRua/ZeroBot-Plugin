@@ -22,13 +22,14 @@ var (
 		DisableOnDefault: false,
 		Brief:            "Minecraft服务器状态查询/订阅",
 		// 详细帮助
-		Help: "- mc服务器状态 [IP/URI]\n" +
-			"- mc服务器添加订阅 [IP/URI]\n" +
-			"- mc服务器删除订阅 [IP/URI]\n" +
-			"- 拉取mc服务器订阅 （仅限群聊，需要插件定时任务配合使用）" +
+		Help: "- mc服务器状态 [服务器IP/URI]\n" +
+			"- mc服务器添加订阅 [服务器IP/URI]\n" +
+			"- mc服务器取消订阅 [服务器IP/URI]\n" +
+			"- mc服务器订阅拉取 （需要插件定时任务配合使用，全局只需要设置一个）" +
 			"-----------------------\n" +
 			"使用job插件设置定时, 例:" +
 			"记录在\"@every 1m\"触发的指令\n" +
+			"（机器人回答：您的下一条指令将被记录，在@@every 1m时触发）" +
 			"mc服务器订阅拉取",
 		// 插件数据存储路径
 		PrivateDataFolder: "minecraftobserver",
@@ -90,7 +91,7 @@ func init() {
 		ctx.SendChain(message.Text(fmt.Sprintf("服务器 %s 订阅添加成功", addr)))
 	})
 	// 删除
-	engine.OnRegex(`^[m|M][c|C]服务器删除订阅\s*(.+)$`, getDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+	engine.OnRegex(`^[m|M][c|C]服务器取消订阅\s*(.+)$`, getDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		// 关键词查找
 		var extractedPlainText string
 		extractedPlainText = ctx.ExtractPlainText()
