@@ -70,7 +70,7 @@ func init() {
 			return
 		}
 		// 插入数据库
-		err = db.insertServerSubscribe(ss.GenServerSubscribeSchema(addr, 0, ctx.Event.GroupID))
+		err = dbInstance.insertServerSubscribe(ss.GenServerSubscribeSchema(addr, 0, ctx.Event.GroupID))
 		if err != nil {
 			logrus.Errorf("[mc-ob] insertServerSubscribe error: %v", err)
 			ctx.SendChain(message.Text("订阅添加失败...", fmt.Sprintf("错误信息: %v", err)))
@@ -85,7 +85,7 @@ func init() {
 		extractedPlainText = ctx.ExtractPlainText()
 		addr := strings.ReplaceAll(extractedPlainText, "mc服务器删除订阅 ", "")
 		// 通过群组id和服务器地址获取服务器状态
-		ss, err := db.getServerSubscribeByTargetGroupAndAddr(addr, ctx.Event.GroupID)
+		ss, err := dbInstance.getServerSubscribeByTargetGroupAndAddr(addr, ctx.Event.GroupID)
 		if err != nil {
 			logrus.Errorf("[mc-ob] getServerSubscribeByTargetGroupAndAddr error: %v", err)
 			ctx.SendChain(message.Text("查询订阅失败...", fmt.Sprintf("错误信息: %v", err)))
@@ -96,7 +96,7 @@ func init() {
 			return
 		}
 		// 删除数据库
-		err = db.deleteServerSubscribeByID(ss.ID)
+		err = dbInstance.deleteServerSubscribeByID(ss.ID)
 		if err != nil {
 			logrus.Errorf("[mc-ob] deleteServerStatus error: %v", err)
 			ctx.SendChain(message.Text("订阅删除失败...", fmt.Sprintf("错误信息: %v", err)))
@@ -106,7 +106,7 @@ func init() {
 	})
 	// 状态变更通知，仅限群聊使用
 	engine.OnFullMatch("拉取mc服务器订阅", zero.OnlyGroup, getDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		serverList, err := db.getAllServerSubscribeByTargetGroup(ctx.Event.GroupID)
+		serverList, err := dbInstance.getAllServerSubscribeByTargetGroup(ctx.Event.GroupID)
 		if err != nil {
 			logrus.Errorf("[mc-ob] getAllServerSubscribeByTargetGroup error: %v", err)
 			return
@@ -202,7 +202,7 @@ func singleServerScan(oldSubStatus *ServerSubscribeSchema) (changed bool, notify
 		logrus.Warnf("[mc-ob] server subscribe spec changed: (%+v) -> (%+v)", oldSubStatus, newSubStatus)
 		changed = true
 		// 更新数据库
-		err = db.updateServerSubscribeStatus(newSubStatus)
+		err = dbInstance.updateServerSubscribeStatus(newSubStatus)
 		if err != nil {
 			logrus.Errorf("[mc-ob] updateServerSubscribeStatus error: %v", err)
 			return

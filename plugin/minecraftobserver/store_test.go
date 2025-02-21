@@ -5,7 +5,7 @@ import (
 )
 
 func cleanTestData(t *testing.T) {
-	err := db.sdb.Table(tableServerSubscribe).Delete(&ServerSubscribeSchema{}).Where("id > 0").Error
+	err := dbInstance.sdb.Table(tableServerSubscribe).Delete(&ServerSubscribeSchema{}).Where("id > 0").Error
 	if err != nil {
 		t.Fatalf("cleanTestData() error = %v", err)
 	}
@@ -16,8 +16,8 @@ func Test_DAO(t *testing.T) {
 	if initErr != nil {
 		t.Fatalf("initializeDB() error = %v", initErr)
 	}
-	if db == nil {
-		t.Fatalf("initializeDB() got = %v, want not nil", db)
+	if dbInstance == nil {
+		t.Fatalf("initializeDB() got = %v, want not nil", dbInstance)
 	}
 	t.Run("insert", func(t *testing.T) {
 		cleanTestData(t)
@@ -37,16 +37,16 @@ func Test_DAO(t *testing.T) {
 			Version:     "1.16.5",
 			FaviconMD5:  "1234567",
 		}
-		err := db.insertServerSubscribe(newSS1)
+		err := dbInstance.insertServerSubscribe(newSS1)
 		if err != nil {
 			t.Errorf("upsertServerStatus() error = %v", err)
 		}
-		err = db.insertServerSubscribe(newSS2)
+		err = dbInstance.insertServerSubscribe(newSS2)
 		if err != nil {
 			t.Errorf("upsertServerStatus() error = %v", err)
 		}
 		// check insert
-		queryResult, err := db.getAllServerSubscribeByTargetGroup(123456)
+		queryResult, err := dbInstance.getAllServerSubscribeByTargetGroup(123456)
 		if err != nil {
 			t.Errorf("getAllServerSubscribeByTargetGroup() error = %v", err)
 		}
@@ -58,7 +58,7 @@ func Test_DAO(t *testing.T) {
 		}
 
 		// check insert 2
-		queryResult2, err := db.getAllServerSubscribeByTargetGroup(777777)
+		queryResult2, err := dbInstance.getAllServerSubscribeByTargetGroup(777777)
 		if err != nil {
 			t.Errorf("getAllServerSubscribeByTargetGroup() error = %v", err)
 		}
@@ -70,7 +70,7 @@ func Test_DAO(t *testing.T) {
 		}
 
 		// 点查
-		queryResult3, err := db.getServerSubscribeByTargetGroupAndAddr("dx.zhaomc.net", 123456)
+		queryResult3, err := dbInstance.getServerSubscribeByTargetGroupAndAddr("dx.zhaomc.net", 123456)
 		if err != nil {
 			t.Fatalf("getServerSubscribeByTargetGroupAndAddr() error = %v", err)
 		}
@@ -89,12 +89,12 @@ func Test_DAO(t *testing.T) {
 			Version:     "1.16.5",
 			FaviconMD5:  "1234567",
 		}
-		err := db.insertServerSubscribe(newSS)
+		err := dbInstance.insertServerSubscribe(newSS)
 		if err != nil {
 			t.Errorf("upsertServerStatus() error = %v", err)
 		}
 		// check insert
-		queryResult, err := db.getAllServerSubscribeByTargetGroup(123456)
+		queryResult, err := dbInstance.getAllServerSubscribeByTargetGroup(123456)
 		if err != nil {
 			t.Errorf("getAllServerSubscribeByTargetGroup() error = %v", err)
 		}
@@ -105,12 +105,12 @@ func Test_DAO(t *testing.T) {
 			t.Errorf("getAllServerSubscribeByTargetGroup() got = %v, want 123456", queryResult[0].TargetGroup)
 		}
 		queryResult[0].Description = "更新测试"
-		err = db.updateServerSubscribeStatus(queryResult[0])
+		err = dbInstance.updateServerSubscribeStatus(queryResult[0])
 		if err != nil {
 			t.Errorf("updateServerSubscribeStatus() error = %v", err)
 		}
 		// check update
-		queryResult2, err := db.getAllServerSubscribeByTargetGroup(123456)
+		queryResult2, err := dbInstance.getAllServerSubscribeByTargetGroup(123456)
 		if err != nil {
 			t.Errorf("getAllServerSubscribeByTargetGroup() error = %v", err)
 		}
@@ -131,12 +131,12 @@ func Test_DAO(t *testing.T) {
 			Version:     "1.16.5",
 			FaviconMD5:  "1234567",
 		}
-		err := db.insertServerSubscribe(newSS)
+		err := dbInstance.insertServerSubscribe(newSS)
 		if err != nil {
 			t.Errorf("upsertServerStatus() error = %v", err)
 		}
 		// check insert
-		queryResult, err := db.getAllServerSubscribeByTargetGroup(123456)
+		queryResult, err := dbInstance.getAllServerSubscribeByTargetGroup(123456)
 		if err != nil {
 			t.Errorf("getAllServerSubscribeByTargetGroup() error = %v", err)
 		}
@@ -146,12 +146,12 @@ func Test_DAO(t *testing.T) {
 		if queryResult[0].TargetGroup != 123456 {
 			t.Errorf("getAllServerSubscribeByTargetGroup() got = %v, want 123456", queryResult[0].TargetGroup)
 		}
-		err = db.deleteServerSubscribeByID(queryResult[0].ID)
+		err = dbInstance.deleteServerSubscribeByID(queryResult[0].ID)
 		if err != nil {
 			t.Errorf("deleteServerStatus() error = %v", err)
 		}
 		// check delete
-		queryResult2, err := db.getAllServerSubscribeByTargetGroup(123456)
+		queryResult2, err := dbInstance.getAllServerSubscribeByTargetGroup(123456)
 		if err != nil {
 			t.Errorf("getAllServerSubscribeByTargetGroup() error = %v", err)
 		}

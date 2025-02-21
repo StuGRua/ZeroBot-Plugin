@@ -14,10 +14,10 @@ import (
 
 const (
 	tableServerSubscribe = "server_subscribe"
-	dbPath               = "minecraft_observer.db"
+	dbPath               = "minecraft_observer.dbInstance"
 )
 
-type mcDB struct {
+type db struct {
 	sdb  *gorm.DB
 	lock sync.RWMutex
 }
@@ -32,26 +32,22 @@ func initializeDB(dbpath string) error {
 		}
 		defer f.Close()
 	}
-	d := &mcDB{
-		sdb:  nil,
-		lock: sync.RWMutex{},
-	}
-	d.lock.Lock()
-	defer d.lock.Unlock()
 	gdb, err := gorm.Open("sqlite3", dbpath)
 	if err != nil {
 		logrus.Errorf("mc-ob] initializeDB ERROR: %v", err)
 		return err
 	}
 	gdb.Table(tableServerSubscribe).AutoMigrate(&ServerSubscribeSchema{})
-	d.sdb = gdb
-	db = d
+	dbInstance = &db{
+		sdb:  gdb,
+		lock: sync.RWMutex{},
+	}
 	return nil
 }
 
 var (
-	// db 数据库实例
-	db *mcDB
+	// dbInstance 数据库实例
+	dbInstance *db
 	// 开启并检查数据库链接
 	getDB = fcext.DoOnceOnSuccess(func(ctx *zero.Ctx) bool {
 		var err error
@@ -65,37 +61,37 @@ var (
 )
 
 // getAllServerSubscribeByTargetGroup 根据群组ID获取所有订阅的服务器
-func (sdb *mcDB) getAllServerSubscribeByTargetGroup(targetGroupID int64) ([]*ServerSubscribeSchema, error) {
-	if db == nil {
+func (d *db) getAllServerSubscribeByTargetGroup(targetGroupID int64) ([]*ServerSubscribeSchema, error) {
+	if d == nil {
 		return nil, errors.New("数据库连接失败")
 	}
 	var ss []*ServerSubscribeSchema
-	if err := db.sdb.Table(tableServerSubscribe).Where("target_group = ?", targetGroupID).Find(&ss).Error; err != nil {
+	if err := d.sdb.Table(tableServerSubscribe).Where("target_group = ?", targetGroupID).Find(&ss).Error; err != nil {
 		return nil, err
 	}
 	return ss, nil
 }
 
 // 通过群组id和服务器地址获取订阅
-func (sdb *mcDB) getServerSubscribeByTargetGroupAndAddr(addr string, targetGroupID int64) (*ServerSubscribeSchema, error) {
-	if db == nil {
+func (d *db) getServerSubscribeByTargetGroupAndAddr(addr string, targetGroupID int64) (*ServerSubscribeSchema, error) {
+	if d == nil {
 		logrus.Errorf("[mc-ob] getServerSubscribeByTargetGroupAndAddr ERROR: %v", "数据库连接失败")
 		return nil, errors.New("数据库连接失败")
 	}
 	var ss ServerSubscribeSchema
-	if err := db.sdb.Table(tableServerSubscribe).Where("server_addr = ? and target_group = ?", addr, targetGroupID).Find(&ss).Error; err != nil {
+	if err := d.sdb.Table(tableServerSubscribe).Where("server_addr = ? and target_group = ?", addr, targetGroupID).Find(&ss).Error; err != nil {
 		logrus.Errorf("[mc-ob] getServerSubscribeByTargetGroupAndAddr ERROR: %v", err)
 		return nil, err
 	}
 	return &ss, nil
 }
 
-func (sdb *mcDB) updateServerSubscribeStatus(ss *ServerSubscribeSchema) (err error) {
-	sdb.lock.Lock()
-	defer sdb.lock.Unlock()
-	if db == nil {
+func (d *db) updateServerSubscribeStatus(ss *ServerSubscribeSchema) (err error) {
+	if d == nil {
 		return errors.New("数据库连接失败")
 	}
+	d.lock.Lock()
+	defer d.lock.Unlock()
 	if ss == nil {
 		return errors.New("参数错误")
 	}
@@ -105,58 +101,42 @@ func (sdb *mcDB) updateServerSubscribeStatus(ss *ServerSubscribeSchema) (err err
 	if ss.LastUpdate == 0 {
 		ss.LastUpdate = time.Now().Unix()
 	}
-	if err = db.sdb.Table(tableServerSubscribe).Model(ss).Update(ss).Where("id = ?", ss.ID).Error; err != nil {
+	if err = d.sdb.Table(tableServerSubscribe).Model(ss).Update(ss).Where("id = ?", ss.ID).Error; err != nil {
 		logrus.Errorf("[mc-ob] updateServerSubscribeStatus ERROR: %v", err)
 		return
 	}
 	return
 }
 
-//func (sdb *mcDB) setServerSubscribeStatusToUnreachable(id int64) (err error) {
-//	sdb.lock.Lock()
-//	defer sdb.lock.Unlock()
-//	if db == nil {
-//		return errors.New("数据库连接失败")
-//	}
-//	if err = db.sdb.Table(tableServerSubscribe).Model(&ServerSubscribeSchema{}).
-//		Updates(map[string]interface{}{
-//			ColNamePingDelay:  PingDelayUnreachable,
-//			ColNameLastUpdate: time.Now().Unix()}).Where("id = ?", id).Error; err != nil {
-//		logrus.Errorf("[mc-ob] updateServerSubscribeStatus ERROR: %v", err)
-//		return
-//	}
-//	return
-//}
-
-func (sdb *mcDB) insertServerSubscribe(ss *ServerSubscribeSchema) (err error) {
-	sdb.lock.Lock()
-	defer sdb.lock.Unlock()
-	if db == nil {
+func (d *db) insertServerSubscribe(ss *ServerSubscribeSchema) (err error) {
+	if d == nil {
 		return errors.New("数据库连接失败")
 	}
+	d.lock.Lock()
+	defer d.lock.Unlock()
 	if ss == nil {
 		return errors.New("参数错误")
 	}
 	if ss.LastUpdate == 0 {
 		ss.LastUpdate = time.Now().Unix()
 	}
-	if err = db.sdb.Table(tableServerSubscribe).Create(ss).Error; err != nil {
+	if err = d.sdb.Table(tableServerSubscribe).Create(ss).Error; err != nil {
 		logrus.Errorf("[mc-ob] insertServerSubscribe ERROR: %v", err)
 		return
 	}
 	return
 }
 
-func (sdb *mcDB) deleteServerSubscribeByID(id int64) (err error) {
-	sdb.lock.Lock()
-	defer sdb.lock.Unlock()
-	if db == nil {
+func (d *db) deleteServerSubscribeByID(id int64) (err error) {
+	if d == nil {
 		return errors.New("数据库连接失败")
 	}
+	d.lock.Lock()
+	defer d.lock.Unlock()
 	if id == 0 {
 		return errors.New("ID不能为空")
 	}
-	if err = db.sdb.Table(tableServerSubscribe).Delete(&ServerSubscribeSchema{}).Where("id = ?", id).Error; err != nil {
+	if err = d.sdb.Table(tableServerSubscribe).Delete(&ServerSubscribeSchema{}).Where("id = ?", id).Error; err != nil {
 		logrus.Errorf("[mc-ob] deleteServerSubscribeByID ERROR: %v", err)
 		return
 	}
