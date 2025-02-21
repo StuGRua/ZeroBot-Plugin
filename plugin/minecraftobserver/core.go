@@ -20,11 +20,13 @@ var (
 		Brief:            "Minecraft服务器状态查询/订阅",
 		// 详细帮助
 		Help: "- mc服务器状态 [IP/URI]\n" +
+			"- mc服务器添加订阅 [IP/URI]\n" +
+			"- mc服务器删除订阅 [IP/URI]\n" +
 			"- 拉取mc服务器订阅 （仅限群聊，需要插件定时任务配合使用）" +
 			"-----------------------\n" +
 			"使用job插件设置定时, 例:" +
 			"记录在\"@every 1m\"触发的指令\n" +
-			"拉取mc服务器订阅",
+			"mc服务器订阅拉取",
 		// 插件数据存储路径
 		PrivateDataFolder: "minecraftobserver",
 		OnEnable: func(ctx *zero.Ctx) {
@@ -38,7 +40,7 @@ var (
 
 func init() {
 	// 状态查询
-	engine.OnRegex("^mc服务器状态 (.+)$").SetBlock(true).Handle(func(ctx *zero.Ctx) {
+	engine.OnRegex("^[m|M][c|C]服务器状态 (.+)$").SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		// 关键词查找
 		var extractedPlainText string
 		extractedPlainText = ctx.ExtractPlainText()
@@ -58,7 +60,7 @@ func init() {
 		}
 	})
 	// 添加订阅
-	engine.OnRegex(`^mc服务器添加订阅\s*(.+)$`, zero.OnlyGroup, getDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+	engine.OnRegex(`^[m|M][c|C]服务器添加订阅\s*(.+)$`, zero.OnlyGroup, getDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		// 关键词查找
 		var extractedPlainText string
 		extractedPlainText = ctx.ExtractPlainText()
@@ -79,7 +81,7 @@ func init() {
 		ctx.SendChain(message.Text("订阅添加成功"))
 	})
 	// 删除
-	engine.OnRegex(`^mc服务器删除订阅\s*(.+)$`, zero.OnlyGroup, getDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+	engine.OnRegex(`^[m|M][c|C]服务器删除订阅\s*(.+)$`, zero.OnlyGroup, getDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		// 关键词查找
 		var extractedPlainText string
 		extractedPlainText = ctx.ExtractPlainText()
@@ -105,12 +107,13 @@ func init() {
 		ctx.SendChain(message.Text("订阅删除成功"))
 	})
 	// 状态变更通知，仅限群聊使用
-	engine.OnFullMatch("拉取mc服务器订阅", zero.OnlyGroup, getDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+	engine.OnRegex(`^[m|M][c|C]服务器订阅拉取$`, zero.OnlyGroup, getDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		serverList, err := dbInstance.getAllServerSubscribeByTargetGroup(ctx.Event.GroupID)
 		if err != nil {
 			logrus.Errorln(logPrefix+"getAllServerSubscribeByTargetGroup error: ", err)
 			return
 		}
+		changedCount := 0
 		for _, oldSubStatus := range serverList {
 			isChanged, changedNotifyMsg, sErr := singleServerScan(oldSubStatus)
 			if sErr != nil {
@@ -120,6 +123,7 @@ func init() {
 			if !isChanged {
 				continue
 			}
+			changedCount++
 			logrus.Infoln(logPrefix+"singleServerScan changed in ", oldSubStatus.ServerAddr, " - ", oldSubStatus.TargetGroup)
 			// 发送变化信息
 			if id := ctx.SendChain(changedNotifyMsg...); id.ID() == 0 {
@@ -127,7 +131,7 @@ func init() {
 				continue
 			}
 		}
-
+		logrus.Infoln(logPrefix+"拉取mc服务器订阅 获取到: ", changedCount, "个服务器订阅状态变更")
 	})
 }
 
