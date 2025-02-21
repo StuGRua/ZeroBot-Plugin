@@ -4,8 +4,12 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	"github.com/FloatTech/imgfactory"
+	"github.com/Tnze/go-mc/chat"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"github.com/wdvxdr1123/ZeroBot/message"
 	"github.com/wdvxdr1123/ZeroBot/utils/helper"
 	"image"
 	"image/png"
@@ -24,18 +28,16 @@ type ServerSubscribeSchema struct {
 	ServerAddr string `json:"server_addr" gorm:"column:server_addr;default:'';unique_index:idx_server_addr_target_group"`
 	// 信息推送群组
 	TargetGroup int64 `json:"target_group" gorm:"column:target_group;default:0;unique_index:idx_server_addr_target_group;index:idx_target_group"`
-	// Title
-	Title string `json:"title" gorm:"column:title;default:''"`
-	// 纯净的服务器描述（不含修饰符）
-	Description string `json:"description" gorm:"column:description;default:''"`
+	// 服务器描述
+	Description string `json:"description" gorm:"column:description;default:null;type:CLOB"`
 	// 在线玩家
 	Players string `json:"players" gorm:"column:players;default:''"`
 	// 版本
 	Version string `json:"version" gorm:"column:version;default:''"`
-	// Favicon MD5
+	// FaviconMD5 Favicon MD5
 	FaviconMD5 string `json:"favicon_md5" gorm:"column:favicon_md5;default:''"`
-	// 原始数据 blob
-	FaviconRaw []byte `json:"favicon_raw" gorm:"column:favicon_raw;default:null"`
+	// FaviconRaw 原始数据
+	FaviconRaw Icon `json:"favicon_raw" gorm:"column:favicon_raw;default:null;type:CLOB"`
 	// 延迟，不可达时为-1
 	PingDelay int64 `json:"ping_delay" gorm:"column:ping_delay;default:-1"`
 	// 更新时间
@@ -61,11 +63,19 @@ func (ss *ServerSubscribeSchema) isSubscribeSpecChanged(new *ServerSubscribeSche
 	if ss.Description != new.Description || ss.Version != new.Version || ss.FaviconMD5 != new.FaviconMD5 {
 		return true
 	}
+	// 状态由不可达变为可达 or 反之
+	if (ss.PingDelay == PingDelayUnreachable && new.PingDelay != PingDelayUnreachable) ||
+		(ss.PingDelay != PingDelayUnreachable && new.PingDelay == PingDelayUnreachable) {
+		return true
+	}
 	return false
 }
 
-// DeepCopy 深拷贝
-func (ss *ServerSubscribeSchema) DeepCopy(dst *ServerSubscribeSchema) {
+// DeepCopyTo 深拷贝
+func (ss *ServerSubscribeSchema) DeepCopyTo(dst *ServerSubscribeSchema) {
+	if ss == nil || dst == nil {
+		return
+	}
 	dst.ID = ss.ID
 	dst.ServerAddr = ss.ServerAddr
 	dst.TargetGroup = ss.TargetGroup
@@ -73,6 +83,7 @@ func (ss *ServerSubscribeSchema) DeepCopy(dst *ServerSubscribeSchema) {
 	dst.Players = ss.Players
 	dst.Version = ss.Version
 	dst.FaviconMD5 = ss.FaviconMD5
+	dst.FaviconRaw = ss.FaviconRaw
 	dst.PingDelay = ss.PingDelay
 	dst.LastUpdate = ss.LastUpdate
 }
@@ -101,21 +112,86 @@ func (ss *ServerSubscribeSchema) FaviconToBytes() (b []byte, err error) {
 	return
 }
 
+func (ss *ServerSubscribeSchema) generateServerStatusMsg() (msg message.Message) {
+	msg = make(message.Message, 0)
+	if ss == nil {
+		return
+	}
+	msg = append(msg, message.Text(fmt.Sprintf("%s\n", ss.Description)))
+	// 图标
+	if ss.FaviconRaw != "" && ss.FaviconRaw.checkPNG() {
+		msg = append(msg, message.Image("base64://"+strings.TrimPrefix(string(ss.FaviconRaw), "data:image/png;base64,")))
+	}
+	msg = append(msg, message.Text(fmt.Sprintf("\n在线人数：%s\n", ss.Players)))
+	msg = append(msg, message.Text(fmt.Sprintf("版本：%s\n", ss.Version)))
+	if ss.PingDelay < 0 {
+		msg = append(msg, message.Text("Ping：超时\n"))
+	} else {
+		msg = append(msg, message.Text(fmt.Sprintf("Ping：%d 毫秒\n", ss.PingDelay)))
+	}
+	return
+}
+
 // DB Schema End
 // ====================
 
+// serverPingAndListResp 服务器状态数据传输对象 From mc server response
+type serverPingAndListResp struct {
+	Description chat.Message
+	Players     struct {
+		Max    int
+		Online int
+		Sample []struct {
+			ID   uuid.UUID
+			Name string
+		}
+	}
+	Version struct {
+		Name     string
+		Protocol int
+	}
+	Favicon Icon
+	Delay   time.Duration
+}
+
+// Icon should be a PNG image that is Base64 encoded
+// (without newlines: \n, new lines no longer work since 1.13)
+// and prepended with "data:image/png;base64,".
+type Icon string
+
+func (i Icon) toImage() (icon image.Image, err error) {
+	const prefix = "data:image/png;base64,"
+	if !strings.HasPrefix(string(i), prefix) {
+		return nil, errors.Errorf("server icon should prepended with %s", prefix)
+	}
+	base64png := strings.TrimPrefix(string(i), prefix)
+	r := base64.NewDecoder(base64.StdEncoding, strings.NewReader(base64png))
+	icon, err = png.Decode(r)
+	return
+}
+
+func (i Icon) checkPNG() bool {
+	const prefix = "data:image/png;base64,"
+	if !strings.HasPrefix(string(i), prefix) {
+		return false
+	}
+	return true
+}
+
 // GenServerSubscribeSchema 将DTO转换为DB Schema
-func (dto *serverPingAndListResp) GenServerSubscribeSchema(id int64, targetGroupID int64) *ServerSubscribeSchema {
+func (dto *serverPingAndListResp) GenServerSubscribeSchema(addr string, id int64, targetGroupID int64) *ServerSubscribeSchema {
+	if dto == nil {
+		return nil
+	}
 	faviconMD5 := md5.Sum(helper.StringToBytes(string(dto.Favicon)))
 	return &ServerSubscribeSchema{
 		ID:          id,
-		ServerAddr:  dto.Description.ClearString(),
+		ServerAddr:  addr,
 		TargetGroup: targetGroupID,
-		Title:       dto.Description.Text,
 		Description: dto.Description.ClearString(),
 		Version:     dto.Version.Name,
 		FaviconMD5:  hex.EncodeToString(faviconMD5[:]),
-		FaviconRaw:  []byte(dto.Favicon),
+		FaviconRaw:  dto.Favicon,
 		PingDelay:   dto.Delay.Milliseconds(),
 		LastUpdate:  time.Now().Unix(),
 	}

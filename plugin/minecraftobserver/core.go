@@ -44,18 +44,14 @@ func init() {
 		extractedPlainText = ctx.ExtractPlainText()
 		logrus.Infof("[mc-ob] extractedPlainText: (%v)", extractedPlainText)
 		addr := strings.ReplaceAll(extractedPlainText, "mc服务器状态 ", "")
-		ss, err := getMinecraftServerStatus(addr)
-		if err != nil || ss == nil {
+		resp, err := getMinecraftServerStatus(addr)
+		if err != nil || resp == nil {
 			logrus.Errorf("[mc-ob] getMinecraftServerStatus error: %v", err)
 			ctx.SendChain(message.Text("服务器状态获取失败...", fmt.Sprintf("错误信息: %v", err)))
 			return
 		}
-		msg := ss.generateServerStatusMsg()
-		//if err != nil {
-		//	logrus.Errorf("[mc-ob] drawAndGenerateServerStatusNoticeMessage error: %v", err)
-		//	ctx.SendChain(message.Text("服务器状态获取失败...", fmt.Sprintf("错误信息: %v", err)))
-		//	return
-		//}
+		status := resp.GenServerSubscribeSchema(addr, 0, 0)
+		msg := status.generateServerStatusMsg()
 		if id := ctx.SendChain(msg...); id.ID() == 0 {
 			ctx.SendChain(message.Text("发送失败..."))
 			return
@@ -74,7 +70,7 @@ func init() {
 			return
 		}
 		// 插入数据库
-		err = db.insertServerSubscribe(ss.GenServerSubscribeSchema(0, ctx.Event.GroupID))
+		err = db.insertServerSubscribe(ss.GenServerSubscribeSchema(addr, 0, ctx.Event.GroupID))
 		if err != nil {
 			logrus.Errorf("[mc-ob] insertServerSubscribe error: %v", err)
 			ctx.SendChain(message.Text("订阅添加失败...", fmt.Sprintf("错误信息: %v", err)))
@@ -149,9 +145,6 @@ func formatSubStatusChange(old, new *ServerSubscribeSchema) (msg message.Message
 	if old == nil || new == nil {
 		return
 	}
-	if old.Title != new.Title {
-		msg = append(msg, message.Text(fmt.Sprintf(subStatusChangeTextNoticeTitleChangeFormat, old.Title, new.Title)))
-	}
 	if old.Description != new.Description {
 		msg = append(msg, message.Text(fmt.Sprintf(subStatusChangeTextNoticeDescFormat, old.Description, new.Description)))
 	}
@@ -178,27 +171,29 @@ func formatSubStatusChange(old, new *ServerSubscribeSchema) (msg message.Message
 	return
 }
 
+// singleServerScan 单个服务器状态扫描
 func singleServerScan(oldSubStatus *ServerSubscribeSchema) (changed bool, notifyMsg message.Message, err error) {
 	notifyMsg = make(message.Message, 0)
-	var newSubStatus *ServerSubscribeSchema
+	newSubStatus := &ServerSubscribeSchema{}
 	// 获取服务器状态 & 检查是否需要更新
 	rawServerStatus, err := getMinecraftServerStatus(oldSubStatus.ServerAddr)
 	if err != nil {
-		logrus.Errorf("[mc-ob] getMinecraftServerStatus error: %v", err)
-		// 不可达时，将pingDelay设置为-1
-		err = db.setServerSubscribeStatusToUnreachable(oldSubStatus.ID)
-		if err != nil {
-			logrus.Errorf("[mc-ob] setServerSubscribeStatusToUnreachable error: %v", err)
-			return
-		}
-		// 服务器状态不可达，清空错误
-		changed = true
+		logrus.Warnf("[mc-ob] getMinecraftServerStatus error: %v", err)
 		err = nil
+		// 深拷贝，设置PingDelay为不可达
+		oldSubStatus.DeepCopyTo(newSubStatus)
+		newSubStatus.PingDelay = PingDelayUnreachable
+	} else {
+		// 检查是否需要更新
+		newSubStatus = rawServerStatus.GenServerSubscribeSchema(oldSubStatus.ServerAddr, oldSubStatus.ID, oldSubStatus.TargetGroup)
 	}
-
-	// 检查是否需要更新
-	newSubStatus = rawServerStatus.GenServerSubscribeSchema(oldSubStatus.ID, oldSubStatus.TargetGroup)
+	if newSubStatus == nil {
+		logrus.Errorf("[mc-ob] newSubStatus is nil")
+		return
+	}
+	// 检查是否有订阅信息变化
 	if oldSubStatus.isSubscribeSpecChanged(newSubStatus) {
+		logrus.Warnf("[mc-ob] server subscribe spec changed: (%+v) -> (%+v)", oldSubStatus, newSubStatus)
 		changed = true
 		// 更新数据库
 		err = db.updateServerSubscribeStatus(newSubStatus)
@@ -207,12 +202,7 @@ func singleServerScan(oldSubStatus *ServerSubscribeSchema) (changed bool, notify
 			return
 		}
 		// 服务状态
-		newStatusMsg := rawServerStatus.generateServerStatusMsg()
-		//if gErr != nil {
-		//	logrus.Errorf("[mc-ob] generateServerStatusPicMsg error: %v", gErr)
-		//	err = gErr
-		//	return
-		//}
+		newStatusMsg := newSubStatus.generateServerStatusMsg()
 		// 发送变化信息 + 服务状态信息
 		notifyMsg = append(notifyMsg, formatSubStatusChange(oldSubStatus, newSubStatus)...)
 		notifyMsg = append(notifyMsg, message.Text("\n当前状态:\n"))
