@@ -24,7 +24,9 @@ type ServerSubscribeSchema struct {
 	ServerAddr string `json:"server_addr" gorm:"column:server_addr;default:'';unique_index:idx_server_addr_target_group"`
 	// 信息推送群组
 	TargetGroup int64 `json:"target_group" gorm:"column:target_group;default:0;unique_index:idx_server_addr_target_group;index:idx_target_group"`
-	// 服务器描述
+	// Title
+	Title string `json:"title" gorm:"column:title;default:''"`
+	// 纯净的服务器描述（不含修饰符）
 	Description string `json:"description" gorm:"column:description;default:''"`
 	// 在线玩家
 	Players string `json:"players" gorm:"column:players;default:''"`
@@ -50,24 +52,8 @@ const (
 	PingDelayUnreachable = -1
 )
 
-// GenServerSubscribeSchema 将DTO转换为DB Schema
-func (dto *serverStatusDTO) GenServerSubscribeSchema(id int64, targetGroupId int64) *ServerSubscribeSchema {
-	faviconMD5 := md5.Sum(helper.StringToBytes(string(dto.Favicon)))
-	return &ServerSubscribeSchema{
-		ID:          id,
-		ServerAddr:  dto.Description.ClearString(),
-		TargetGroup: targetGroupId,
-		Description: dto.Description.ClearString(),
-		Version:     dto.Version.Name,
-		FaviconMD5:  hex.EncodeToString(faviconMD5[:]),
-		FaviconRaw:  []byte(dto.Favicon),
-		PingDelay:   dto.Delay.Milliseconds(),
-		LastUpdate:  time.Now().Unix(),
-	}
-}
-
-// IsSubscribeSpecChanged 检查是否有订阅信息变化
-func (ss *ServerSubscribeSchema) IsSubscribeSpecChanged(new *ServerSubscribeSchema) bool {
+// isSubscribeSpecChanged 检查是否有订阅信息变化
+func (ss *ServerSubscribeSchema) isSubscribeSpecChanged(new *ServerSubscribeSchema) bool {
 	if ss == nil || new == nil {
 		return false
 	}
@@ -117,3 +103,20 @@ func (ss *ServerSubscribeSchema) FaviconToBytes() (b []byte, err error) {
 
 // DB Schema End
 // ====================
+
+// GenServerSubscribeSchema 将DTO转换为DB Schema
+func (dto *serverPingAndListResp) GenServerSubscribeSchema(id int64, targetGroupID int64) *ServerSubscribeSchema {
+	faviconMD5 := md5.Sum(helper.StringToBytes(string(dto.Favicon)))
+	return &ServerSubscribeSchema{
+		ID:          id,
+		ServerAddr:  dto.Description.ClearString(),
+		TargetGroup: targetGroupID,
+		Title:       dto.Description.Text,
+		Description: dto.Description.ClearString(),
+		Version:     dto.Version.Name,
+		FaviconMD5:  hex.EncodeToString(faviconMD5[:]),
+		FaviconRaw:  []byte(dto.Favicon),
+		PingDelay:   dto.Delay.Milliseconds(),
+		LastUpdate:  time.Now().Unix(),
+	}
+}

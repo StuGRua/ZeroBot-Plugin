@@ -16,8 +16,8 @@ import (
 	"time"
 )
 
-// serverStatusDTO 服务器状态数据传输对象 From mc server response
-type serverStatusDTO struct {
+// serverPingAndListResp 服务器状态数据传输对象 From mc server response
+type serverPingAndListResp struct {
 	Description chat.Message
 	Players     struct {
 		Max    int
@@ -60,14 +60,14 @@ func (i Icon) checkPNG() bool {
 }
 
 // getMinecraftServerStatus 获取Minecraft服务器状态
-func getMinecraftServerStatus(addr string) (*serverStatusDTO, error) {
+func getMinecraftServerStatus(addr string) (*serverPingAndListResp, error) {
 	resp, delay, err := bot.PingAndListTimeout(addr, time.Second*2)
 	if err != nil {
 		logrus.Errorf("[mcobserver] PingAndList error: %+v", err)
 		return nil, err
 	}
 	logrus.Infof("[mcobserver] PingAndList response: %v", string(resp))
-	var s serverStatusDTO
+	var s serverPingAndListResp
 	err = json.Unmarshal(resp, &s)
 	if err != nil {
 		logrus.Errorf("[drawServerStatus] Parse json response fail: %+v", err)
@@ -77,7 +77,7 @@ func getMinecraftServerStatus(addr string) (*serverStatusDTO, error) {
 	return &s, nil
 }
 
-func (dto *serverStatusDTO) generateServerStatusMsg() (msg message.Message) {
+func (dto *serverPingAndListResp) generateServerStatusMsg() (msg message.Message) {
 	msg = make(message.Message, 0)
 	msg = append(msg, message.Text(fmt.Sprintf("%v\n", dto.Description.Text)))
 	// 图标
@@ -92,7 +92,7 @@ func (dto *serverStatusDTO) generateServerStatusMsg() (msg message.Message) {
 }
 
 // generateServerStatusPicMsg 生成服务器状态图片消息
-//func (dto *serverStatusDTO) generateServerStatusPicMsg() (msg message.Segment, err error) {
+//func (dto *serverPingAndListResp) generateServerStatusPicMsg() (msg message.Segment, err error) {
 //	// 绘制图片
 //	info, err := dto.drawServerStatus()
 //	if err != nil {
@@ -117,7 +117,7 @@ func (dto *serverStatusDTO) generateServerStatusMsg() (msg message.Message) {
 //)
 //
 //// drawServerStatus 绘制服务器状态的图片
-//func (dto *serverStatusDTO) drawServerStatus() (img image.Image, err error) {
+//func (dto *serverPingAndListResp) drawServerStatus() (img image.Image, err error) {
 //	canvas := gg.NewContext(pingListPicTotalWidth, pingListPicTotalHeight)
 //
 //	backgroundData, gErr := getBackGroundData()

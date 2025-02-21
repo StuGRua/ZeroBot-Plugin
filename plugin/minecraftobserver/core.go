@@ -20,7 +20,7 @@ var (
 		Brief:            "MC服务器状态查询/订阅",
 		// 详细帮助
 		Help: "- mc服务器状态 [IP/URI]\n" +
-			"- 拉取mc服务器订阅 （需要插件定时任务配合使用）" +
+			"- 拉取mc服务器订阅 （仅限群聊，需要插件定时任务配合使用）" +
 			"-----------------------\n" +
 			"使用job插件设置定时, 例:" +
 			"记录在\"@every 1m\"触发的指令\n" +
@@ -134,6 +134,8 @@ func init() {
 
 const (
 	subStatusChangeTextNoticeTitleFormat = "Minecraft服务器状态变更通知:\n"
+	// 标题变更
+	subStatusChangeTextNoticeTitleChangeFormat = "标题变更: %v -> %v\n"
 	// 描述变更
 	subStatusChangeTextNoticeDescFormat = "描述变更: %v -> %v\n"
 	// 版本变更
@@ -146,6 +148,9 @@ func formatSubStatusChange(old, new *ServerSubscribeSchema) (msg message.Message
 	msg = make(message.Message, 0)
 	if old == nil || new == nil {
 		return
+	}
+	if old.Title != new.Title {
+		msg = append(msg, message.Text(fmt.Sprintf(subStatusChangeTextNoticeTitleChangeFormat, old.Title, new.Title)))
 	}
 	if old.Description != new.Description {
 		msg = append(msg, message.Text(fmt.Sprintf(subStatusChangeTextNoticeDescFormat, old.Description, new.Description)))
@@ -193,7 +198,7 @@ func singleServerScan(oldSubStatus *ServerSubscribeSchema) (changed bool, notify
 
 	// 检查是否需要更新
 	newSubStatus = rawServerStatus.GenServerSubscribeSchema(oldSubStatus.ID, oldSubStatus.TargetGroup)
-	if oldSubStatus.IsSubscribeSpecChanged(newSubStatus) {
+	if oldSubStatus.isSubscribeSpecChanged(newSubStatus) {
 		changed = true
 		// 更新数据库
 		err = db.updateServerSubscribeStatus(newSubStatus)

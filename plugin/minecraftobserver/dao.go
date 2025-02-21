@@ -61,25 +61,25 @@ var (
 )
 
 // getAllServerSubscribeByTargetGroup 根据群组ID获取所有订阅的服务器
-func (sdb *mcDB) getAllServerSubscribeByTargetGroup(targetGroupId int64) ([]*ServerSubscribeSchema, error) {
+func (sdb *mcDB) getAllServerSubscribeByTargetGroup(targetGroupID int64) ([]*ServerSubscribeSchema, error) {
 	if db == nil {
 		return nil, errors.New("数据库连接失败")
 	}
 	var ss []*ServerSubscribeSchema
-	if err := db.sdb.Table(tableServerSubscribe).Where("target_group = ?", targetGroupId).Find(&ss).Error; err != nil {
+	if err := db.sdb.Table(tableServerSubscribe).Where("target_group = ?", targetGroupID).Find(&ss).Error; err != nil {
 		return nil, err
 	}
 	return ss, nil
 }
 
 // 通过群组id和服务器地址获取订阅
-func (sdb *mcDB) getServerSubscribeByTargetGroupAndAddr(addr string, targetGroupId int64) (*ServerSubscribeSchema, error) {
+func (sdb *mcDB) getServerSubscribeByTargetGroupAndAddr(addr string, targetGroupID int64) (*ServerSubscribeSchema, error) {
 	if db == nil {
 		logrus.Errorf("[mc-ob] getServerSubscribeByTargetGroupAndAddr ERROR: %v", "数据库连接失败")
 		return nil, errors.New("数据库连接失败")
 	}
 	var ss ServerSubscribeSchema
-	if err := db.sdb.Table(tableServerSubscribe).Where("server_addr = ? and target_group = ?", addr, targetGroupId).Find(&ss).Error; err != nil {
+	if err := db.sdb.Table(tableServerSubscribe).Where("server_addr = ? and target_group = ?", addr, targetGroupID).Find(&ss).Error; err != nil {
 		logrus.Errorf("[mc-ob] getServerSubscribeByTargetGroupAndAddr ERROR: %v", err)
 		return nil, err
 	}
