@@ -36,7 +36,7 @@ func initializeDB(dbpath string) error {
 	}
 	gdb, err := gorm.Open("sqlite3", dbpath)
 	if err != nil {
-		logrus.Errorf("mc-ob] initializeDB ERROR: %v", err)
+		logrus.Errorln(logPrefix+"initializeDB ERROR: ", err)
 		return err
 	}
 	gdb.Table(tableServerSubscribe).AutoMigrate(&ServerSubscribeSchema{})
@@ -55,6 +55,7 @@ var (
 		var err error
 		err = initializeDB(engine.DataFolder() + dbPath)
 		if err != nil {
+			logrus.Errorln(logPrefix+"initializeDB ERROR: ", err)
 			ctx.SendChain(message.Text("[mc-ob] ERROR: ", err))
 			return false
 		}
@@ -69,6 +70,7 @@ func (d *db) getAllServerSubscribeByTargetGroup(targetGroupID int64) ([]*ServerS
 	}
 	var ss []*ServerSubscribeSchema
 	if err := d.sdb.Table(tableServerSubscribe).Where("target_group = ?", targetGroupID).Find(&ss).Error; err != nil {
+		logrus.Errorln(logPrefix+"getAllServerSubscribeByTargetGroup ERROR: ", err)
 		return nil, err
 	}
 	return ss, nil
@@ -81,7 +83,7 @@ func (d *db) getServerSubscribeByTargetGroupAndAddr(addr string, targetGroupID i
 	}
 	var ss ServerSubscribeSchema
 	if err := d.sdb.Table(tableServerSubscribe).Where("server_addr = ? and target_group = ?", addr, targetGroupID).Find(&ss).Error; err != nil {
-		logrus.Errorf("[mc-ob] getServerSubscribeByTargetGroupAndAddr ERROR: %v", err)
+		logrus.Errorln(logPrefix+"getServerSubscribeByTargetGroupAndAddr ERROR: ", err)
 		return nil, err
 	}
 	return &ss, nil
@@ -103,7 +105,7 @@ func (d *db) updateServerSubscribeStatus(ss *ServerSubscribeSchema) (err error) 
 		ss.LastUpdate = time.Now().Unix()
 	}
 	if err = d.sdb.Table(tableServerSubscribe).Model(ss).Update(ss).Where("id = ?", ss.ID).Error; err != nil {
-		logrus.Errorf("[mc-ob] updateServerSubscribeStatus ERROR: %v", err)
+		logrus.Errorln(logPrefix+"updateServerSubscribeStatus ERROR: ", err)
 		return
 	}
 	return
@@ -122,7 +124,7 @@ func (d *db) insertServerSubscribe(ss *ServerSubscribeSchema) (err error) {
 		ss.LastUpdate = time.Now().Unix()
 	}
 	if err = d.sdb.Table(tableServerSubscribe).Create(ss).Error; err != nil {
-		logrus.Errorf("[mc-ob] insertServerSubscribe ERROR: %v", err)
+		logrus.Errorln(logPrefix+"insertServerSubscribe ERROR: ", err)
 		return
 	}
 	return
@@ -138,7 +140,7 @@ func (d *db) deleteServerSubscribeByID(id int64) (err error) {
 		return errors.New("ID不能为空")
 	}
 	if err = d.sdb.Table(tableServerSubscribe).Delete(&ServerSubscribeSchema{}).Where("id = ?", id).Error; err != nil {
-		logrus.Errorf("[mc-ob] deleteServerSubscribeByID ERROR: %v", err)
+		logrus.Errorln(logPrefix+"deleteServerSubscribeByID ERROR: ", err)
 		return
 	}
 	return

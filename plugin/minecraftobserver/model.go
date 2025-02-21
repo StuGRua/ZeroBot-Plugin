@@ -200,3 +200,9 @@ func (dto *serverPingAndListResp) GenServerSubscribeSchema(addr string, id int64
 		LastUpdate:  time.Now().Unix(),
 	}
 }
+
+// ====================
+
+const (
+	logPrefix = "[minecraft observer] "
+)

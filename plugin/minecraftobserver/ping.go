@@ -11,13 +11,13 @@ import (
 func getMinecraftServerStatus(addr string) (*serverPingAndListResp, error) {
 	resp, delay, err := bot.PingAndListTimeout(addr, time.Second*5)
 	if err != nil {
-		logrus.Errorf("[mcobserver] PingAndList error: %+v", err)
+		logrus.Errorln(logPrefix+"PingAndList error: ", err)
 		return nil, err
 	}
 	var s serverPingAndListResp
 	err = json.Unmarshal(resp, &s)
 	if err != nil {
-		logrus.Errorf("[drawServerStatus] Parse json response fail: %+v", err)
+		logrus.Errorln(logPrefix+"Parse json response fail: ", err)
 		return nil, err
 	}
 	s.Delay = delay
