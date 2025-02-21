@@ -50,20 +50,24 @@ const (
 )
 
 // IsSubscribeSpecChanged 检查是否有订阅信息变化
-func (ss *ServerSubscribeSchema) IsSubscribeSpecChanged(new *ServerSubscribeSchema) bool {
+func (ss *ServerSubscribeSchema) IsSubscribeSpecChanged(new *ServerSubscribeSchema) (res bool) {
+	res = false
 	if ss == nil || new == nil {
-		return false
+		res = false
+		return
 	}
 	// 描述变化、版本变化、Favicon变化
 	if ss.Description != new.Description || ss.Version != new.Version || ss.FaviconMD5 != new.FaviconMD5 {
-		return true
+		res = true
+		return
 	}
 	// 状态由不可达变为可达 or 反之
 	if (ss.PingDelay == PingDelayUnreachable && new.PingDelay != PingDelayUnreachable) ||
 		(ss.PingDelay != PingDelayUnreachable && new.PingDelay == PingDelayUnreachable) {
-		return true
+		res = true
+		return
 	}
-	return false
+	return
 }
 
 // DeepCopyTo 深拷贝
