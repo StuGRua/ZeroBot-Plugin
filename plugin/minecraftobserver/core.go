@@ -113,6 +113,7 @@ func init() {
 			logrus.Errorln(logPrefix+"getAllServerSubscribeByTargetGroup error: ", err)
 			return
 		}
+		logrus.Infoln(logPrefix+"为群组ID: ", ctx.Event.GroupID, " 获取到: ", len(serverList), "个订阅")
 		changedCount := 0
 		for _, oldSubStatus := range serverList {
 			isChanged, changedNotifyMsg, sErr := singleServerScan(oldSubStatus)
@@ -131,7 +132,7 @@ func init() {
 				continue
 			}
 		}
-		logrus.Infoln(logPrefix+"拉取mc服务器订阅 获取到: ", changedCount, "个服务器订阅状态变更")
+		logrus.Infoln(logPrefix+"共探测到 ", changedCount, "个服务器状态变更")
 	})
 }
 
