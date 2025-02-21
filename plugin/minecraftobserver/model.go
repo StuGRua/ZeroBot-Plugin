@@ -123,12 +123,12 @@ func (ss *ServerSubscribeSchema) GenerateServerStatusMsg() (msg message.Message)
 	if ss.FaviconRaw != "" && ss.FaviconRaw.checkPNG() {
 		msg = append(msg, message.Image(ss.FaviconRaw.toBase64String()))
 	}
-	msg = append(msg, message.Text(fmt.Sprintf("\n在线人数：%s\n", ss.Players)))
 	msg = append(msg, message.Text(fmt.Sprintf("版本：%s\n", ss.Version)))
 	if ss.PingDelay < 0 {
 		msg = append(msg, message.Text("Ping：超时\n"))
 	} else {
 		msg = append(msg, message.Text(fmt.Sprintf("Ping：%d 毫秒\n", ss.PingDelay)))
+		msg = append(msg, message.Text(fmt.Sprintf("\n在线人数：%s\n", ss.Players)))
 	}
 	return
 }
@@ -194,6 +194,7 @@ func (dto *ServerPingAndListResp) GenServerSubscribeSchema(addr string, id int64
 		TargetGroup: targetGroupID,
 		Description: dto.Description.ClearString(),
 		Version:     dto.Version.Name,
+		Players:     fmt.Sprintf("%d/%d", dto.Players.Online, dto.Players.Max),
 		FaviconMD5:  hex.EncodeToString(faviconMD5[:]),
 		FaviconRaw:  dto.Favicon,
 		PingDelay:   dto.Delay.Milliseconds(),

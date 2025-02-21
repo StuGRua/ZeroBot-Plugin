@@ -194,7 +194,7 @@ func singleServerScan(oldSubStatus *ServerSubscribeSchema) (changed bool, notify
 		oldSubStatus.DeepCopyTo(newSubStatus)
 		newSubStatus.PingDelay = PingDelayUnreachable
 	} else {
-		// 检查是否需要更新
+		// 没有错误则更新服务器状态
 		newSubStatus = rawServerStatus.GenServerSubscribeSchema(oldSubStatus.ServerAddr, oldSubStatus.ID, oldSubStatus.TargetGroup)
 	}
 	if newSubStatus == nil {
