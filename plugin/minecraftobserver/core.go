@@ -36,7 +36,7 @@ var (
 			"（机器人回答：您的下一条指令将被记录，在@@every 1m时触发）" +
 			"mc服务器订阅拉取",
 		// 插件数据存储路径
-		PrivateDataFolder: "minecraftobserver",
+		PrivateDataFolder: name,
 		OnEnable: func(ctx *zero.Ctx) {
 			ctx.SendChain(message.Text("minecraft observer已启动..."))
 		},
@@ -145,9 +145,12 @@ func init() {
 			logrus.Infoln(logPrefix+"singleServerScan changed in ", subAddr)
 			// 发送变化信息
 			for _, notify := range subInfo {
+				logrus.Debugln(logPrefix+" now try to send notify to ", notify.TargetID, notify.TargetType)
 				time.Sleep(100 * time.Millisecond)
 				if notify.TargetType == targetTypeUser {
-					ctx.SendPrivateMessage(notify.TargetID, changedNotifyMsg)
+					if sid := ctx.SendPrivateMessage(notify.TargetID, changedNotifyMsg); sid == 0 {
+						logrus.Warnln(logPrefix + fmt.Sprintf("SendPrivateMessage to (%d,%d) failed", notify.TargetID, notify.TargetType))
+					}
 				} else if notify.TargetType == targetTypeGroup {
 					m, ok := control.Lookup(name)
 					if !ok {
@@ -157,11 +160,13 @@ func init() {
 					if !m.IsEnabledIn(ctx.Event.GroupID) {
 						continue
 					}
-					ctx.SendGroupMessage(notify.TargetID, changedNotifyMsg)
+					if sid := ctx.SendGroupMessage(notify.TargetID, changedNotifyMsg); sid == 0 {
+						logrus.Warnln(logPrefix + fmt.Sprintf("SendGroupMessage to (%d,%d) failed", notify.TargetID, notify.TargetType))
+					}
 				}
 			}
 		}
-		logrus.Infoln(logPrefix+"共探测到 ", changedCount, "个服务器状态变更")
+		logrus.Debugln(logPrefix+"共探测到 ", changedCount, "个服务器状态变更")
 	})
 }
 
@@ -264,7 +269,7 @@ func singleServerScan(oldSubStatus *ServerStatus) (changed bool, notifyMsg messa
 		}
 		// 服务状态
 		newStatusMsg := newSubStatus.GenerateServerStatusMsg()
-		// 发送变化信息 + 服务状态信息
+		// 变化信息 + 服务状态信息
 		notifyMsg = append(notifyMsg, formatSubStatusChange(oldSubStatus, newSubStatus)...)
 		notifyMsg = append(notifyMsg, message.Text("\n当前状态:\n"))
 		notifyMsg = append(notifyMsg, newStatusMsg...)
