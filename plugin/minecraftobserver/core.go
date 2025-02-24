@@ -127,7 +127,7 @@ func init() {
 		}
 		logrus.Debugln(logPrefix + fmt.Sprintf("serverMap: %+v", serverMap))
 		changedCount := 0
-		for subAddr, subInfo := range serverMap {
+		for subAddr, oneServerSubList := range serverMap {
 			// 查询当前存储的状态
 			storedStatus, sErr := dbInstance.getServerStatus(subAddr)
 			if sErr != nil {
@@ -145,24 +145,24 @@ func init() {
 			changedCount++
 			logrus.Infoln(logPrefix+"singleServerScan changed in ", subAddr)
 			// 发送变化信息
-			for _, notify := range subInfo {
-				logrus.Debugln(logPrefix+" now try to send notify to ", notify.TargetID, notify.TargetType)
+			for _, subInfo := range oneServerSubList {
+				logrus.Debugln(logPrefix+" now try to send subInfo to ", subInfo.TargetID, subInfo.TargetType)
 				time.Sleep(100 * time.Millisecond)
-				if notify.TargetType == targetTypeUser {
-					if sid := ctx.SendPrivateMessage(notify.TargetID, changedNotifyMsg); sid == 0 {
-						logrus.Warnln(logPrefix + fmt.Sprintf("SendPrivateMessage to (%d,%d) failed", notify.TargetID, notify.TargetType))
+				if subInfo.TargetType == targetTypeUser {
+					if sid := ctx.SendPrivateMessage(subInfo.TargetID, changedNotifyMsg); sid == 0 {
+						logrus.Warnln(logPrefix + fmt.Sprintf("SendPrivateMessage to (%d,%d) failed", subInfo.TargetID, subInfo.TargetType))
 					}
-				} else if notify.TargetType == targetTypeGroup {
+				} else if subInfo.TargetType == targetTypeGroup {
 					m, ok := control.Lookup(name)
 					if !ok {
 						logrus.Warnln(logPrefix + "control.Lookup empty")
 						continue
 					}
-					if !m.IsEnabledIn(ctx.Event.GroupID) {
+					if !m.IsEnabledIn(subInfo.TargetID) {
 						continue
 					}
-					if sid := ctx.SendGroupMessage(notify.TargetID, changedNotifyMsg); sid == 0 {
-						logrus.Warnln(logPrefix + fmt.Sprintf("SendGroupMessage to (%d,%d) failed", notify.TargetID, notify.TargetType))
+					if sid := ctx.SendGroupMessage(subInfo.TargetID, changedNotifyMsg); sid == 0 {
+						logrus.Warnln(logPrefix + fmt.Sprintf("SendGroupMessage to (%d,%d) failed", subInfo.TargetID, subInfo.TargetType))
 					}
 				}
 			}
