@@ -15,9 +15,13 @@ import (
 	"time"
 )
 
+const (
+	name = "minecraftobserver"
+)
+
 var (
 	// 注册插件
-	engine = control.Register("minecraftobserver", &ctrl.Options[*zero.Ctx]{
+	engine = control.Register(name, &ctrl.Options[*zero.Ctx]{
 		// 默认不启动
 		DisableOnDefault: false,
 		Brief:            "Minecraft服务器状态查询/订阅",
@@ -141,9 +145,18 @@ func init() {
 			logrus.Infoln(logPrefix+"singleServerScan changed in ", subAddr)
 			// 发送变化信息
 			for _, notify := range subInfo {
+				time.Sleep(100 * time.Millisecond)
 				if notify.TargetType == targetTypeUser {
 					ctx.SendPrivateMessage(notify.TargetID, changedNotifyMsg)
 				} else if notify.TargetType == targetTypeGroup {
+					m, ok := control.Lookup(name)
+					if !ok {
+						logrus.Warnln(logPrefix + "control.Lookup empty")
+						continue
+					}
+					if !m.IsEnabledIn(ctx.Event.GroupID) {
+						continue
+					}
 					ctx.SendGroupMessage(notify.TargetID, changedNotifyMsg)
 				}
 			}
