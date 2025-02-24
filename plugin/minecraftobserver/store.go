@@ -147,7 +147,6 @@ func (d *db) deleteSubscribe(addr string, targetID int64, targetType int64) (err
 	}
 	if err = d.sdb.Model(&ServerSubscribe{}).Delete(&ServerSubscribe{}).Where("server_addr = ? and target_id = ? and target_type = ?", addr, targetID, targetType).Error; err != nil {
 		logrus.Errorln(logPrefix+"deleteSubscribe ERROR: ", err)
-
 		return
 	}
 

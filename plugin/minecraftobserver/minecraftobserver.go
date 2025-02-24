@@ -52,7 +52,6 @@ func init() {
 		// 关键词查找
 		var extractedPlainText string
 		extractedPlainText = ctx.ExtractPlainText()
-		logrus.Infoln(logPrefix+"extractedPlainText: ", extractedPlainText)
 		addr := strings.ReplaceAll(extractedPlainText, "mc服务器状态 ", "")
 		resp, err := getMinecraftServerStatus(addr)
 		if err != nil || resp == nil {
@@ -120,12 +119,11 @@ func init() {
 			logrus.Errorln(logPrefix+"getAllServer error: ", err)
 			return
 		}
-		logrus.Infoln(logPrefix+"全局获取到 ", len(serverList), "个订阅")
+		logrus.Debugln(logPrefix+"global get ", len(serverList), " subscribe(s)")
 		serverMap := make(map[string][]ServerSubscribe)
 		for _, v := range serverList {
 			serverMap[v.ServerAddr] = append(serverMap[v.ServerAddr], v)
 		}
-		logrus.Debugln(logPrefix + fmt.Sprintf("serverMap: %+v", serverMap))
 		changedCount := 0
 		for subAddr, oneServerSubList := range serverMap {
 			// 查询当前存储的状态
@@ -167,7 +165,7 @@ func init() {
 				}
 			}
 		}
-		logrus.Debugln(logPrefix+"共探测到 ", changedCount, "个服务器状态变更")
+		logrus.Debugln(logPrefix + fmt.Sprintf("global scan finished, %d server(s) changed", changedCount))
 	})
 }
 
