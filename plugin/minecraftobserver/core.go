@@ -125,6 +125,7 @@ func init() {
 		for _, v := range serverList {
 			serverMap[v.ServerAddr] = append(serverMap[v.ServerAddr], v)
 		}
+		logrus.Debugln(logPrefix + fmt.Sprintf("serverMap: %+v", serverMap))
 		changedCount := 0
 		for subAddr, subInfo := range serverMap {
 			// 查询当前存储的状态
