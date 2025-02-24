@@ -9,6 +9,7 @@ import (
 	"github.com/Tnze/go-mc/chat"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 	"github.com/wdvxdr1123/ZeroBot/utils/helper"
 	"image"
@@ -219,3 +220,64 @@ func (dto *ServerPingAndListResp) GenServerSubscribeSchema(addr string, id int64
 const (
 	logPrefix = "[minecraft observer] "
 )
+
+// warpTargetIDAndType 转换消息信息到订阅的目标ID和类型
+func warpTargetIDAndType(ctx *zero.Ctx) (int64, int64) {
+	// 订阅
+	var targetID int64
+	var targetType int64
+	if ctx.Event.GroupID == 0 {
+		targetType = targetTypeUser
+		targetID = ctx.Event.UserID
+	} else {
+		targetType = targetTypeGroup
+		targetID = ctx.Event.GroupID
+	}
+	return targetID, targetType
+}
+
+const (
+	subStatusChangeTextNoticeTitleFormat = "Minecraft服务器状态变更通知:\n"
+	// 图标变更
+	subStatusChangeTextNoticeIconFormat = "图标变更:\n"
+)
+
+func formatSubStatusChange(oldStatus, newStatus *ServerStatus) (msg message.Message) {
+	msg = make(message.Message, 0)
+	if oldStatus == nil || newStatus == nil {
+		return
+	}
+	if oldStatus.Description != newStatus.Description {
+		msg = append(msg, message.Text(fmt.Sprintf("描述变更: %v -> %v\n", oldStatus.Description, newStatus.Description)))
+	}
+	if oldStatus.Version != newStatus.Version {
+		msg = append(msg, message.Text(fmt.Sprintf("版本变更: %v -> %v\n", oldStatus.Version, newStatus.Version)))
+	}
+	if oldStatus.FaviconMD5 != newStatus.FaviconMD5 {
+		msg = append(msg, message.Text(subStatusChangeTextNoticeIconFormat))
+		var faviconOldBase64, faviconNewBase64 string
+		if oldStatus.FaviconRaw.checkPNG() {
+			faviconOldBase64 = oldStatus.FaviconRaw.toBase64String()
+			msg = append(msg, message.Text("旧图标："), message.Image(faviconOldBase64), message.Text("->"))
+		} else {
+			msg = append(msg, message.Text("旧图标：无->"))
+		}
+		if newStatus.FaviconRaw.checkPNG() {
+			faviconNewBase64 = newStatus.FaviconRaw.toBase64String()
+			msg = append(msg, message.Text("新图标："), message.Image(faviconNewBase64), message.Text("\n"))
+		} else {
+			msg = append(msg, message.Text("新图标：无\n"))
+		}
+	}
+	// 状态由不可达变为可达，反之
+	if oldStatus.PingDelay == PingDelayUnreachable && newStatus.PingDelay != PingDelayUnreachable {
+		msg = append(msg, message.Text(fmt.Sprintf("Ping延迟：超时 -> %d\n", newStatus.PingDelay)))
+	}
+	if oldStatus.PingDelay != PingDelayUnreachable && newStatus.PingDelay == PingDelayUnreachable {
+		msg = append(msg, message.Text(fmt.Sprintf("Ping延迟：%d -> 超时\n", oldStatus.PingDelay)))
+	}
+	if len(msg) != 0 {
+		msg = append([]message.Segment{message.Text(subStatusChangeTextNoticeTitleFormat)}, msg...)
+	}
+	return
+}
